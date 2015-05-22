@@ -21,7 +21,7 @@
 #include <sensor_msgs/Range.h>
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/Bool.h>
-#include <hrov_control/hrov_control_std_msg.h>
+#include <hrov_control/HrovControlStdMsg.h>
 
 using namespace std;
 
@@ -49,7 +49,7 @@ class Hrov_control
 		ros::Publisher		goto_pub_;
 		ros::Subscriber		joystick_sub_;
 		ros::Subscriber		odom_sub_;
-		ros::ServiceServer	runBlackboxGotoPoseSrv;
+		ros::ServiceClient	runBlackboxGotoPoseSrv;
 
 		geometry_msgs::Pose	robotCurrentPose;
 		geometry_msgs::Pose robotDesiredPose;
@@ -58,7 +58,7 @@ class Hrov_control
 		void joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick);
 		void missionMenu();
 		void blackboxPosition();
-		bool BlackboxGotoPose(hrov_control_std_msgRequest &req, hrov_control_std_msgResponse &res, bool startPhase);
+		bool BlackboxGotoPose();
 
 
 };

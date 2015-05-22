@@ -42,7 +42,7 @@ Hrov_control::Hrov_control()
 	odom_sub_ = nh_.subscribe<geometry_msgs::Pose>("g500/pose", 1, &Hrov_control::odomCallback, this);
 
 	//Services initialization
-	runBlackboxGotoPoseSrv = nh_.advertiseService("runBlackboxGotoPoseSrv", &Hrov_control::BlackboxGotoPose):
+	runBlackboxGotoPoseSrv = nh_.serviceClient<hrov_control::HrovControlStdMsg>("runBlackboxGotoPoseSrv");
 
 
 	
@@ -107,22 +107,23 @@ void Hrov_control::blackboxPosition()
 }
 
 
-bool Hrov_control::BlackboxGotoPose(hrov_control_std_msgRequest &req, hrov_control_std_msgResponse &res, bool startPhase)
+bool Hrov_control::BlackboxGotoPose()
 {
-	hrov_control_std_msg startStopSrv;
+	hrov_control::HrovControlStdMsg startStopSrv;
 
-	startStopSrv.request.boolValue = startPhase;
-	ROS_INFO ("Start message for BlackboxGotoPose: %b", (bool)startPhase);
+	startStopSrv.request.boolValue = true;
+//	ROS_INFO ("Start message for BlackboxGotoPose: %b", startPhase);
 
 	if (runBlackboxGotoPoseSrv.call(startStopSrv))
 	{
-		ROS_INFO("Finished mission: %b", (bool)startStopSrv.response.boolValue);
+		ROS_INFO_STREAM("Finished mission: " << startStopSrv.response.boolValue);
 	}
 	else
 	{
-		ROS_ERROR("Failed to call service runBlackboxGotoPoseSrv");
+		ROS_INFO_STREAM("Failed to call service runBlackboxGotoPoseSrv");
 		return 1;
 	}
+	//if error -> manual control
 
 	return true;
 }
