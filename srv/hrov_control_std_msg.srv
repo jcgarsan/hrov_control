@@ -1,0 +1,5 @@
+#Request message
+bool boolValue
+---
+#Response message
+bool boolValue

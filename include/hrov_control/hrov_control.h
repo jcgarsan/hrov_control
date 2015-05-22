@@ -1,5 +1,5 @@
 /* 
- * Copyright (c) 2014 University of Jaume-I.
+ * Copyright (c) 2015 University of Jaume-I.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the GNU Public License v3.0
  * which accompanies this distribution, and is available at
@@ -21,6 +21,7 @@
 #include <sensor_msgs/Range.h>
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/Bool.h>
+#include <hrov_control/hrov_control_std_msg.h>
 
 using namespace std;
 
@@ -32,25 +33,32 @@ class Hrov_control
 		Hrov_control();
 		~Hrov_control();
 		
-		bool userControl;
-		bool robotCollision;
+		bool 		userControl;
+		bool 		robotCollision;
+		int			missionType;
+		int			blackboxPhase[4];
 		
-		ros::Time lastPress;
+		ros::Time	lastPress;
 
+		geometry_msgs::Pose blackboxPose;
 		
 		
 	private:
 		ros::NodeHandle nh_;
 
-		ros::Publisher  goto_pub_;
-		ros::Subscriber joystick_sub_;
-		ros::Subscriber odom_sub_;
+		ros::Publisher		goto_pub_;
+		ros::Subscriber		joystick_sub_;
+		ros::Subscriber		odom_sub_;
+		ros::ServiceServer	runBlackboxGotoPoseSrv;
 
 		geometry_msgs::Pose	robotCurrentPose;
 		geometry_msgs::Pose robotDesiredPose;
 
 		void odomCallback(const geometry_msgs::Pose::ConstPtr& odomValue);
 		void joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick);
+		void missionMenu();
+		void blackboxPosition();
+		bool BlackboxGotoPose(hrov_control_std_msgRequest &req, hrov_control_std_msgResponse &res, bool startPhase);
 
 
 };

@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 2.8.3)
 project(hrov_control)
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
+	nodelet
+	roscpp
+	rospy
+	std_msgs
+	message_generation
 )
 
 ## System dependencies are found with CMake's conventions
@@ -44,11 +46,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+	FILES
+	hrov_control_std_msg.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -58,10 +59,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+	DEPENDENCIES
+	std_msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -75,6 +76,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS
+	nodelet
 	roscpp
 	rospy
 	std_msgs
@@ -102,7 +104,7 @@ add_executable(hrov_control src/hrov_control.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(hrov_control_node hrov_control_generate_messages_cpp)
+add_dependencies(hrov_control ${PROJECT_NAME}_EXPORTED_TARGETS)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(hrov_control
