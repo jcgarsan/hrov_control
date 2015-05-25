@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
 Hrov_control::Hrov_control()
 {
-	userControl = false;
+	userControlRequest.data = false;
 	missionType = 0;
 	lastPress = ros::Time::now();
 
@@ -35,8 +35,9 @@ Hrov_control::Hrov_control()
 		blackboxPhase[i] = 0;
 	
 	//Publisher initialization
-	goto_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("/gotopose", 1);
-	
+	goto_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("gotopose", 1);
+	userControlRequest_pub_ = nh_.advertise<std_msgs::Bool>("userControlRequest", 1);
+
 	//Subscriber initialization by device to be used
 	joystick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joystick_out", 1, &Hrov_control::joystickCallback, this); 
 	odom_sub_ = nh_.subscribe<geometry_msgs::Pose>("g500/pose", 1, &Hrov_control::odomCallback, this);
@@ -104,28 +105,33 @@ void Hrov_control::blackboxPosition()
 	cin >> blackboxPose.position.y;
 	cout << "Enter blackbox z-location:" << endl;
 	cin >> blackboxPose.position.z;
+	
+	//Publish GoToPose info: where the robot should go?
+	robotDesiredPose.header.stamp = ros::Time::now();
+	robotDesiredPose.pose.position.x = blackboxPose.position.x - robotCurrentPose.position.x;
+	robotDesiredPose.pose.position.y = blackboxPose.position.y - robotCurrentPose.position.y;
+	robotDesiredPose.pose.position.z = blackboxPose.position.z - robotCurrentPose.position.z;
+	goto_pub_.publish(robotDesiredPose);
 }
 
 
-bool Hrov_control::BlackboxGotoPose()
+void Hrov_control::BlackboxGotoPose()
 {
 	hrov_control::HrovControlStdMsg startStopSrv;
 
 	startStopSrv.request.boolValue = true;
-//	ROS_INFO ("Start message for BlackboxGotoPose: %b", startPhase);
 
 	if (runBlackboxGotoPoseSrv.call(startStopSrv))
 	{
 		ROS_INFO_STREAM("Finished mission: " << startStopSrv.response.boolValue);
+		blackboxPhase[0] = 1;
+		for (int i=0; i<4; i++)
+			blackboxPhase[i] = 0;
 	}
 	else
 	{
 		ROS_INFO_STREAM("Failed to call service runBlackboxGotoPoseSrv");
-		return 1;
 	}
-	//if error -> manual control
-
-	return true;
 }
 
 
@@ -144,8 +150,9 @@ void Hrov_control::joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick)
 	ros::Duration difTime = currentPress - lastPress;
 	if ((difTime.toSec() > 0.5) and (joystick->buttons[0] == 1))
 	{
-		userControl = !userControl;
+		userControlRequest.data = !userControlRequest.data;
 		lastPress = currentPress;
-		cout << "userControl button pressed. userControl = " << userControl << endl;
+		cout << "userControlRequest button pressed. userControlRequest = " << userControlRequest << endl;
+		userControlRequest_pub_.publish(userControlRequest);
 	}
 }

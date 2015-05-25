@@ -17,6 +17,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose.h>
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/Range.h>
 #include <sensor_msgs/Joy.h>
@@ -33,7 +34,6 @@ class Hrov_control
 		Hrov_control();
 		~Hrov_control();
 		
-		bool 		userControl;
 		bool 		robotCollision;
 		int			missionType;
 		int			blackboxPhase[4];
@@ -41,24 +41,27 @@ class Hrov_control
 		ros::Time	lastPress;
 
 		geometry_msgs::Pose blackboxPose;
-		
+		std_msgs::Bool		userControlRequest;
 		
 	private:
-		ros::NodeHandle nh_;
+		ros::NodeHandle		nh_;
 
 		ros::Publisher		goto_pub_;
+		ros::Publisher		safetyAlarm_pub_;
+		ros::Publisher		userControlRequest_pub_;
 		ros::Subscriber		joystick_sub_;
 		ros::Subscriber		odom_sub_;
+		
 		ros::ServiceClient	runBlackboxGotoPoseSrv;
 
-		geometry_msgs::Pose	robotCurrentPose;
-		geometry_msgs::Pose robotDesiredPose;
+		geometry_msgs::Pose			robotCurrentPose;
+		geometry_msgs::PoseStamped  robotDesiredPose;
 
 		void odomCallback(const geometry_msgs::Pose::ConstPtr& odomValue);
 		void joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick);
 		void missionMenu();
 		void blackboxPosition();
-		bool BlackboxGotoPose();
+		void BlackboxGotoPose();
 
 
 };
