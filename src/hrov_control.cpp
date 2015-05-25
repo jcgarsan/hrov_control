@@ -99,12 +99,13 @@ void Hrov_control::missionMenu()
 void Hrov_control::blackboxPosition()
 {
 	cout << "Starting phase 1: Go to target position..." << endl;
-	cout << "Enter blackbox x-location:" << endl;
+	cout << "Enter blackbox x-location: ";
 	cin >> blackboxPose.position.x;
-	cout << "Enter blackbox y-location:" << endl;
+	cout << "Enter blackbox y-location: ";
 	cin >> blackboxPose.position.y;
-	cout << "Enter blackbox z-location:" << endl;
+	cout << "Enter blackbox z-location: ";
 	cin >> blackboxPose.position.z;
+	cout << endl;
 	
 	//Publish GoToPose info: where the robot should go?
 	robotDesiredPose.header.stamp = ros::Time::now();
@@ -112,6 +113,11 @@ void Hrov_control::blackboxPosition()
 	robotDesiredPose.pose.position.y = blackboxPose.position.y - robotCurrentPose.position.y;
 	robotDesiredPose.pose.position.z = blackboxPose.position.z - robotCurrentPose.position.z;
 	goto_pub_.publish(robotDesiredPose);
+	
+	if (blackboxPhase[0] == 0)
+		BlackboxGotoPose();
+	else
+		cout << "blackboxPhase[0] == 0" << endl;
 }
 
 
@@ -123,10 +129,22 @@ void Hrov_control::BlackboxGotoPose()
 
 	if (runBlackboxGotoPoseSrv.call(startStopSrv))
 	{
-		ROS_INFO_STREAM("Finished mission: " << startStopSrv.response.boolValue);
-		blackboxPhase[0] = 1;
-		for (int i=0; i<4; i++)
-			blackboxPhase[i] = 0;
+		ROS_INFO_STREAM("Finished mission: " << startStopSrv.response);
+		if (startStopSrv.response.boolValue)
+		{
+			blackboxPhase[0] = 1;
+			cout << "blackboxPhase[] = " ;
+			for (int i=0; i<4; i++)
+				cout << blackboxPhase[i] << ", ";
+			cout << endl;
+		}
+		else
+		{
+			cout << "blackboxPhase[] = " ;
+			for (int i=0; i<4; i++)
+				cout << blackboxPhase[i] << ", ";
+			cout << endl;
+		}
 	}
 	else
 	{
