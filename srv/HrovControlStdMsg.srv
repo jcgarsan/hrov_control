@@ -1,5 +1,6 @@
 #Request message
 bool boolValue
+geometry_msgs/Pose robotTargetPosition
 ---
 #Response message
 bool boolValue

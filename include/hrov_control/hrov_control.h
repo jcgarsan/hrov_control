@@ -55,13 +55,15 @@ class Hrov_control
 		ros::ServiceClient	runBlackboxGotoPoseSrv;
 
 		geometry_msgs::Pose			robotCurrentPose;
-		geometry_msgs::PoseStamped  robotDesiredPose;
+		geometry_msgs::Pose			robotLastPose;
+		geometry_msgs::PoseStamped  robotDesiredPosition;
 
 		void odomCallback(const geometry_msgs::Pose::ConstPtr& odomValue);
 		void joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick);
 		void missionMenu();
 		void blackboxPosition();
 		void BlackboxGotoPose();
+		void GoToSurface();
 
 
 };

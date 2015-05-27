@@ -14,6 +14,8 @@
 #include <string.h>
 #include "../include/hrov_control/hrov_control.h"
 
+//DEBUG Flags
+#define DEBUG_FLAG	0
 
 using namespace std;
 
@@ -27,6 +29,7 @@ int main(int argc, char **argv)
 
 Hrov_control::Hrov_control()
 {
+	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
 	userControlRequest.data = false;
 	missionType = 0;
 	lastPress = ros::Time::now();
@@ -35,12 +38,10 @@ Hrov_control::Hrov_control()
 		blackboxPhase[i] = 0;
 	
 	//Publisher initialization
-	goto_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("gotopose", 1);
 	userControlRequest_pub_ = nh_.advertise<std_msgs::Bool>("userControlRequest", 1);
 
 	//Subscriber initialization by device to be used
 	joystick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joystick_out", 1, &Hrov_control::joystickCallback, this); 
-	odom_sub_ = nh_.subscribe<geometry_msgs::Pose>("g500/pose", 1, &Hrov_control::odomCallback, this);
 
 	//Services initialization
 	runBlackboxGotoPoseSrv = nh_.serviceClient<hrov_control::HrovControlStdMsg>("runBlackboxGotoPoseSrv");
@@ -58,6 +59,12 @@ Hrov_control::~Hrov_control()
 }
 
 
+
+
+/************************************************************************/
+/*						COMMON FUNCTIONS								*/
+/************************************************************************/
+
 void Hrov_control::missionMenu()
 {
 	int i;
@@ -69,10 +76,11 @@ void Hrov_control::missionMenu()
 	cout << "1) Survey" << endl;
 	cout << "2) Blackbox recovery" << endl;
 	cout << "3) Panel intervention" << endl;
+	cout << "9) Test the system" << endl;
 	cout << "0) Exit" << endl;
 	
 	cin >> i;
-	if ((i >= 0) and (i <= 3))
+	if ((i >= 0) and (i <= 9))
 		missionType = i;
 
 	switch (missionType)
@@ -90,29 +98,69 @@ void Hrov_control::missionMenu()
 		case 3:
 			cout << "Panel intervention..." << endl;
 			break;
+		case 9:
+			cout << "Testing the system..." << endl;
+			break;
 		
 	}
 
 }
+
+/*void Hrov_control::odomCallback(const geometry_msgs::Pose::ConstPtr& odomValue)
+{
+	geometry_msgs::Pose robotDifPose;
+	
+	//Storing the last robot position
+	robotLastPose.position = robotCurrentPose.position;
+	//Updating the current robot position & orientation
+	robotCurrentPose.position = odomValue->position;
+	robotCurrentPose.orientation = odomValue->orientation;
+	//Getting the difference between last & current pose.
+	robotDifPose.position.x = robotCurrentPose.position.x - robotLastPose.position.x;
+	robotDifPose.position.y = robotCurrentPose.position.y - robotLastPose.position.y;
+	robotDifPose.position.z = robotCurrentPose.position.z - robotLastPose.position.z;
+	//Checking if the difference is less than 0.3, so the robot has a problem or has achieved the goal
+	if ((robotDifPose.position.x < 0.3) and (robotDifPose.position.y < 0.3) and (robotDifPose.position.z < 0.3))
+	{
+		userControlRequest.data = true;
+		userControlRequest_pub_.publish(userControlRequest);
+	}		
+	
+	if (DEBUG_FLAG)
+		cout << "Position\n" << odomValue->position << "\nOrientation\n" << odomValue->orientation << endl;
+}
+*/
+
+
+void Hrov_control::joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick)
+{
+	ros::Time currentPress = ros::Time::now();
+	ros::Duration difTime = currentPress - lastPress;
+	if ((difTime.toSec() > 0.5) and (joystick->buttons[0] == 1))
+	{
+		userControlRequest.data = !userControlRequest.data;
+		lastPress = currentPress;
+		userControlRequest_pub_.publish(userControlRequest);
+		if (DEBUG_FLAG)
+			cout << "userControlRequest button pressed. userControlRequest = " << userControlRequest << endl;
+	}
+}
+
+/************************************************************************/
+/*						BLACKBOX RECOVERY								*/
+/************************************************************************/
 
 
 void Hrov_control::blackboxPosition()
 {
 	cout << "Starting phase 1: Go to target position..." << endl;
 	cout << "Enter blackbox x-location: ";
-	cin >> blackboxPose.position.x;
+	cin >> robotDesiredPosition.pose.position.x;
 	cout << "Enter blackbox y-location: ";
-	cin >> blackboxPose.position.y;
+	cin >> robotDesiredPosition.pose.position.y;
 	cout << "Enter blackbox z-location: ";
-	cin >> blackboxPose.position.z;
+	cin >> robotDesiredPosition.pose.position.z;
 	cout << endl;
-	
-	//Publish GoToPose info: where the robot should go?
-	robotDesiredPose.header.stamp = ros::Time::now();
-	robotDesiredPose.pose.position.x = blackboxPose.position.x - robotCurrentPose.position.x;
-	robotDesiredPose.pose.position.y = blackboxPose.position.y - robotCurrentPose.position.y;
-	robotDesiredPose.pose.position.z = blackboxPose.position.z - robotCurrentPose.position.z;
-	goto_pub_.publish(robotDesiredPose);
 	
 	if (blackboxPhase[0] == 0)
 		BlackboxGotoPose();
@@ -126,6 +174,9 @@ void Hrov_control::BlackboxGotoPose()
 	hrov_control::HrovControlStdMsg startStopSrv;
 
 	startStopSrv.request.boolValue = true;
+	startStopSrv.request.robotTargetPosition.position.x = robotDesiredPosition.pose.position.x;
+	startStopSrv.request.robotTargetPosition.position.y = robotDesiredPosition.pose.position.y;
+	startStopSrv.request.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
 
 	if (runBlackboxGotoPoseSrv.call(startStopSrv))
 	{
@@ -153,24 +204,9 @@ void Hrov_control::BlackboxGotoPose()
 }
 
 
-
-void Hrov_control::odomCallback(const geometry_msgs::Pose::ConstPtr& odomValue)
+void Hrov_control::GoToSurface()
 {
-//	cout << "Position\n" << odomValue->position << "\nOrientation\n" << odomValue->orientation << endl;
-	robotCurrentPose.position = odomValue->position;
-	robotCurrentPose.orientation = odomValue->orientation;
-}
-
-
-void Hrov_control::joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick)
-{
-	ros::Time currentPress = ros::Time::now();
-	ros::Duration difTime = currentPress - lastPress;
-	if ((difTime.toSec() > 0.5) and (joystick->buttons[0] == 1))
-	{
-		userControlRequest.data = !userControlRequest.data;
-		lastPress = currentPress;
-		cout << "userControlRequest button pressed. userControlRequest = " << userControlRequest << endl;
-		userControlRequest_pub_.publish(userControlRequest);
-	}
+	robotDesiredPosition.pose.position.x = 0;
+	robotDesiredPosition.pose.position.y = 0;
+	robotDesiredPosition.pose.position.z = 0;
 }
