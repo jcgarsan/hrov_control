@@ -38,17 +38,13 @@ class Hrov_control
 		int			missionType;
 		int			blackboxPhase[4];
 		
-		ros::Time	lastPress;
-
 		geometry_msgs::Pose blackboxPose;
-		std_msgs::Bool		userControlRequest;
 		
 	private:
 		ros::NodeHandle		nh_;
 
 		ros::Publisher		goto_pub_;
 		ros::Publisher		safetyAlarm_pub_;
-		ros::Publisher		userControlRequest_pub_;
 		ros::Subscriber		joystick_sub_;
 		ros::Subscriber		odom_sub_;
 		
@@ -58,8 +54,6 @@ class Hrov_control
 		geometry_msgs::Pose			robotLastPose;
 		geometry_msgs::PoseStamped  robotDesiredPosition;
 
-		void odomCallback(const geometry_msgs::Pose::ConstPtr& odomValue);
-		void joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick);
 		void missionMenu();
 		void blackboxPosition();
 		void BlackboxGotoPose();

@@ -30,19 +30,12 @@ int main(int argc, char **argv)
 Hrov_control::Hrov_control()
 {
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
-	userControlRequest.data = false;
+//	userControlRequest.data = false;
 	missionType = 0;
-	lastPress = ros::Time::now();
 
 	for (int i=0; i<4; i++)
 		blackboxPhase[i] = 0;
 	
-	//Publisher initialization
-	userControlRequest_pub_ = nh_.advertise<std_msgs::Bool>("userControlRequest", 1);
-
-	//Subscriber initialization by device to be used
-	joystick_sub_ = nh_.subscribe<sensor_msgs::Joy>("joystick_out", 1, &Hrov_control::joystickCallback, this); 
-
 	//Services initialization
 	runBlackboxGotoPoseSrv = nh_.serviceClient<hrov_control::HrovControlStdMsg>("runBlackboxGotoPoseSrv");
 
@@ -106,45 +99,6 @@ void Hrov_control::missionMenu()
 
 }
 
-/*void Hrov_control::odomCallback(const geometry_msgs::Pose::ConstPtr& odomValue)
-{
-	geometry_msgs::Pose robotDifPose;
-	
-	//Storing the last robot position
-	robotLastPose.position = robotCurrentPose.position;
-	//Updating the current robot position & orientation
-	robotCurrentPose.position = odomValue->position;
-	robotCurrentPose.orientation = odomValue->orientation;
-	//Getting the difference between last & current pose.
-	robotDifPose.position.x = robotCurrentPose.position.x - robotLastPose.position.x;
-	robotDifPose.position.y = robotCurrentPose.position.y - robotLastPose.position.y;
-	robotDifPose.position.z = robotCurrentPose.position.z - robotLastPose.position.z;
-	//Checking if the difference is less than 0.3, so the robot has a problem or has achieved the goal
-	if ((robotDifPose.position.x < 0.3) and (robotDifPose.position.y < 0.3) and (robotDifPose.position.z < 0.3))
-	{
-		userControlRequest.data = true;
-		userControlRequest_pub_.publish(userControlRequest);
-	}		
-	
-	if (DEBUG_FLAG)
-		cout << "Position\n" << odomValue->position << "\nOrientation\n" << odomValue->orientation << endl;
-}
-*/
-
-
-void Hrov_control::joystickCallback(const sensor_msgs::Joy::ConstPtr& joystick)
-{
-	ros::Time currentPress = ros::Time::now();
-	ros::Duration difTime = currentPress - lastPress;
-	if ((difTime.toSec() > 0.5) and (joystick->buttons[0] == 1))
-	{
-		userControlRequest.data = !userControlRequest.data;
-		lastPress = currentPress;
-		userControlRequest_pub_.publish(userControlRequest);
-		if (DEBUG_FLAG)
-			cout << "userControlRequest button pressed. userControlRequest = " << userControlRequest << endl;
-	}
-}
 
 /************************************************************************/
 /*						BLACKBOX RECOVERY								*/
