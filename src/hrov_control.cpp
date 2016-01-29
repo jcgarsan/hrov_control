@@ -60,50 +60,92 @@ Hrov_control::~Hrov_control()
 
 void Hrov_control::missionMenu()
 {
-	int i;
-	geometry_msgs::Pose blackboxPose;
+//	geometry_msgs::Pose blackboxPose;
 
-	cout << "HROV mission control menu" << endl;
+	cout << "\n\rHROV mission control menu" << endl;
 	cout << "-------------------------" << endl;
 	cout << "Select a mission type" << endl;
 	cout << "1) Survey" << endl;
 	cout << "2) Blackbox recovery" << endl;
 	cout << "3) Panel intervention" << endl;
+	cout << "8) Go to surface" << endl;
 	cout << "9) Test the system" << endl;
 	cout << "0) Exit" << endl;
 	
-	cin >> i;
-	if ((i >= 0) and (i <= 9))
-		missionType = i;
-
-	switch (missionType)
+	cout << "Mission type: ";
+	cin >> missionType;
+	if ((missionType >= 0) and (missionType <= 9))
 	{
-		case 0:
-			cout << "Program finished..." << endl;
-			break;
-		case 1:
-			cout << "Survey specification menu..." << endl;
-			break;
-		case 2:
-			cout << "Blackbox recovery mission..." << endl;
-			blackboxPosition();
-			break;
-		case 3:
-			cout << "Panel intervention..." << endl;
-			break;
-		case 9:
-			cout << "Testing the system..." << endl;
-			break;
-		
+		switch (missionType)
+		{
+			case 0:
+				cout << "Program finished..." << endl;
+				exit(0);
+				break;
+			case 1:
+				cout << "Survey specification menu..." << endl;
+				break;
+			case 2:
+				cout << "Blackbox recovery mission..." << endl;
+				blackboxMenu();
+				break;
+			case 3:
+				cout << "Panel intervention..." << endl;
+				break;
+			case 8:
+				cout << "Go to surface..." << endl;
+				GoToSurface();
+				break;
+			case 9:
+				cout << "Testing the system..." << endl;
+				break;
+		}
 	}
-
+	else
+	{
+		cout << "missionType should be between 0...9" << endl;
+		missionMenu();
+	}
 }
 
 
 /************************************************************************/
 /*						BLACKBOX RECOVERY								*/
 /************************************************************************/
+void Hrov_control::blackboxMenu()
+{
+	cout << "\n\rBlackbox recovery menu" << endl;
+	cout << "-------------------------" << endl;
+	cout << "Select a mission type" << endl;
+	cout << "1) Set target position" << endl;
+	cout << "2) Init blackbox detection" << endl;
+	cout << "0) Exit" << endl;
 
+	cout << "Mission type: ";
+	cin >> missionType;
+	if ((missionType >= 0) and (missionType <= 2))
+	{
+		switch (missionType)
+		{
+			case 0:
+				cout << "Program finished..." << endl;
+				exit(0);
+				break;
+			case 1:
+				blackboxPhase[0] = 0;
+				blackboxPosition();
+				break;
+			case 2:
+				cout << "Blackbox detection algorithm..." << endl;
+				break;
+		}		
+	}
+	else
+	{
+		cout << "missionType should be between 0...2" << endl;
+		blackboxMenu();
+	}
+}
 
 void Hrov_control::blackboxPosition()
 {
@@ -119,7 +161,9 @@ void Hrov_control::blackboxPosition()
 	if (blackboxPhase[0] == 0)
 		BlackboxGotoPose();
 	else
-		cout << "blackboxPhase[0] == 0" << endl;
+	{
+		cout << "BlackboxGotoPose() finished. blackboxPhase[0] == 0" << endl;
+	}
 }
 
 
@@ -138,14 +182,15 @@ void Hrov_control::BlackboxGotoPose()
 		if (startStopSrv.response.boolValue)
 		{
 			blackboxPhase[0] = 1;
-			cout << "blackboxPhase[] = " ;
+			cout << "BlackboxGotoPose achieved successfully. blackboxPhase[] = " ;
 			for (int i=0; i<4; i++)
 				cout << blackboxPhase[i] << ", ";
 			cout << endl;
+			missionMenu();
 		}
 		else
 		{
-			cout << "blackboxPhase[] = " ;
+			cout << "BlackboxGotoPose failed. blackboxPhase[] = " ;
 			for (int i=0; i<4; i++)
 				cout << blackboxPhase[i] << ", ";
 			cout << endl;
@@ -162,5 +207,5 @@ void Hrov_control::GoToSurface()
 {
 	robotDesiredPosition.pose.position.x = 0;
 	robotDesiredPosition.pose.position.y = 0;
-	robotDesiredPosition.pose.position.z = 0;
+	robotDesiredPosition.pose.position.z = 1;
 }

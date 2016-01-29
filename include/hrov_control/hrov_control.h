@@ -55,6 +55,7 @@ class Hrov_control
 		geometry_msgs::PoseStamped  robotDesiredPosition;
 
 		void missionMenu();
+		void blackboxMenu();
 		void blackboxPosition();
 		void BlackboxGotoPose();
 		void GoToSurface();
