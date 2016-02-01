@@ -35,18 +35,18 @@ class Hrov_control
 		~Hrov_control();
 		
 		bool 		robotCollision;
+		bool		safetyAlarm;
+		bool		userControlRequest;
 		int			missionType;
 		int			blackboxPhase[4];
 		
 		geometry_msgs::Pose blackboxPose;
 		
 	private:
-		ros::NodeHandle		nh_;
+		ros::NodeHandle		nh;
 
-		ros::Publisher		goto_pub_;
-		ros::Publisher		safetyAlarm_pub_;
-		ros::Subscriber		joystick_sub_;
-		ros::Subscriber		odom_sub_;
+		ros::Subscriber		sub_userControlInfo;
+		ros::Subscriber		sub_safetyInfo;
 		
 		ros::ServiceClient	runBlackboxGotoPoseSrv;
 
@@ -59,6 +59,7 @@ class Hrov_control
 		void blackboxPosition();
 		void BlackboxGotoPose();
 		void GoToSurface();
-
+		void safetyMeasuresCallback(const std_msgs::Bool::ConstPtr& msg);
+		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 
 };

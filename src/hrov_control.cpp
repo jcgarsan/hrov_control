@@ -15,7 +15,8 @@
 #include "../include/hrov_control/hrov_control.h"
 
 //DEBUG Flags
-#define DEBUG_FLAG	0
+#define DEBUG_FLAG			0
+#define DEBUG_FLAG_CALLBACK	0
 
 using namespace std;
 
@@ -29,19 +30,22 @@ int main(int argc, char **argv)
 
 Hrov_control::Hrov_control()
 {
+	safetyAlarm			= false;
+	userControlRequest	= false;
+	
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
-//	userControlRequest.data = false;
 	missionType = 0;
 
 	for (int i=0; i<4; i++)
 		blackboxPhase[i] = 0;
+
+	//Subscribers initialization
+	sub_safetyInfo = nh.subscribe<std_msgs::Bool>("safetyMeasures", 1, &Hrov_control::safetyMeasuresCallback,this);
+	sub_userControlInfo = nh.subscribe<std_msgs::Bool>("userControlRequest", 1, &Hrov_control::userControlReqCallback, this);
 	
 	//Services initialization
-	runBlackboxGotoPoseSrv = nh_.serviceClient<hrov_control::HrovControlStdMsg>("runBlackboxGotoPoseSrv");
+	runBlackboxGotoPoseSrv = nh.serviceClient<hrov_control::HrovControlStdMsg>("runBlackboxGotoPoseSrv");
 
-
-	
-	
 	missionMenu();
 }
 
@@ -60,8 +64,6 @@ Hrov_control::~Hrov_control()
 
 void Hrov_control::missionMenu()
 {
-//	geometry_msgs::Pose blackboxPose;
-
 	cout << "\n\rHROV mission control menu" << endl;
 	cout << "-------------------------" << endl;
 	cout << "Select a mission type" << endl;
@@ -197,9 +199,7 @@ void Hrov_control::BlackboxGotoPose()
 		}
 	}
 	else
-	{
 		ROS_INFO_STREAM("Failed to call service runBlackboxGotoPoseSrv");
-	}
 }
 
 
@@ -208,4 +208,24 @@ void Hrov_control::GoToSurface()
 	robotDesiredPosition.pose.position.x = 0;
 	robotDesiredPosition.pose.position.y = 0;
 	robotDesiredPosition.pose.position.z = 1;
+	BlackboxGotoPose();
+}
+
+
+/************************************************************************/
+/*							CALLBACKS									*/
+/************************************************************************/
+void Hrov_control::userControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+	userControlRequest = msg->data;
+	if (DEBUG_FLAG_CALLBACK)
+		cout << "userControlRequestCallback: " << userControlRequest << endl;
+}
+
+
+void Hrov_control::safetyMeasuresCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+	safetyAlarm = msg->data;
+	if (DEBUG_FLAG_CALLBACK)
+		cout << "safetyMeasuresCallback: " << safetyAlarm << endl;
 }
