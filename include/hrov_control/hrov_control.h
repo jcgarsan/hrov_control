@@ -22,6 +22,7 @@
 #include <sensor_msgs/Range.h>
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int8MultiArray.h>
 #include <hrov_control/HrovControlStdMsg.h>
 
 using namespace std;
@@ -35,9 +36,9 @@ class Hrov_control
 		~Hrov_control();
 		
 		bool 		robotCollision;
-		bool		safetyAlarm;
 		bool		userControlRequest;
 		int			missionType;
+		int			safetyAlarm;
 		int			blackboxPhase[4];
 		
 		geometry_msgs::Pose blackboxPose;
@@ -59,7 +60,7 @@ class Hrov_control
 		void blackboxPosition();
 		void BlackboxGotoPose();
 		void GoToSurface();
-		void safetyMeasuresCallback(const std_msgs::Bool::ConstPtr& msg);
+		void safetyMeasuresCallback(const std_msgs::Int8MultiArray::ConstPtr& msg);
 		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 
 };

@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
 Hrov_control::Hrov_control()
 {
-	safetyAlarm			= false;
+	safetyAlarm			= 0;
 	userControlRequest	= false;
 	
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
@@ -40,7 +40,7 @@ Hrov_control::Hrov_control()
 		blackboxPhase[i] = 0;
 
 	//Subscribers initialization
-	sub_safetyInfo = nh.subscribe<std_msgs::Bool>("safetyMeasures", 1, &Hrov_control::safetyMeasuresCallback,this);
+	sub_safetyInfo = nh.subscribe<std_msgs::Int8MultiArray>("safetyMeasures", 1, &Hrov_control::safetyMeasuresCallback,this);
 	sub_userControlInfo = nh.subscribe<std_msgs::Bool>("userControlRequest", 1, &Hrov_control::userControlReqCallback, this);
 	
 	//Services initialization
@@ -178,6 +178,7 @@ void Hrov_control::BlackboxGotoPose()
 	startStopSrv.request.robotTargetPosition.position.y = robotDesiredPosition.pose.position.y;
 	startStopSrv.request.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
 
+	ROS_INFO_STREAM("Starting the mission... ");
 	if (runBlackboxGotoPoseSrv.call(startStopSrv))
 	{
 		ROS_INFO_STREAM("Finished mission: " << startStopSrv.response);
@@ -207,7 +208,7 @@ void Hrov_control::GoToSurface()
 {
 	robotDesiredPosition.pose.position.x = 0;
 	robotDesiredPosition.pose.position.y = 0;
-	robotDesiredPosition.pose.position.z = 1;
+	robotDesiredPosition.pose.position.z = 2;
 	BlackboxGotoPose();
 }
 
@@ -223,9 +224,9 @@ void Hrov_control::userControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 }
 
 
-void Hrov_control::safetyMeasuresCallback(const std_msgs::Bool::ConstPtr& msg)
+void Hrov_control::safetyMeasuresCallback(const std_msgs::Int8MultiArray::ConstPtr& msg)
 {
-	safetyAlarm = msg->data;
+	safetyAlarm = msg->data[0];
 	if (DEBUG_FLAG_CALLBACK)
 		cout << "safetyMeasuresCallback: " << safetyAlarm << endl;
 }
