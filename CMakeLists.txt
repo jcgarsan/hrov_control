@@ -8,6 +8,9 @@ find_package(catkin REQUIRED COMPONENTS
 	std_msgs
 	geometry_msgs
 	message_generation
+	actionlib
+	actionlib_msgs
+	thruster_control
 )
 
 ## System dependencies are found with CMake's conventions
@@ -83,6 +86,10 @@ catkin_package(
 	rospy
 	std_msgs
 	geometry_msgs
+	actionlib
+	actionlib_msgs
+	thruster_control
+	
 #  DEPENDS system_lib
 )
 

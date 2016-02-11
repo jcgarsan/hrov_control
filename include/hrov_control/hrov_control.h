@@ -23,7 +23,10 @@
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int8MultiArray.h>
-#include <hrov_control/HrovControlStdMsg.h>
+#include <underwater_sensor_msgs/Pressure.h>
+#include <actionlib/client/simple_action_client.h>
+#include <actionlib/client/terminal_state.h>
+#include <thruster_control/goToPoseAction.h>
 
 using namespace std;
 
@@ -35,22 +38,22 @@ class Hrov_control
 		Hrov_control();
 		~Hrov_control();
 		
-		bool 		robotCollision;
-		bool		userControlRequest;
+		bool		userControlRequestAlarm;
+		bool		userControlRequestButton;
 		int			missionType;
-		int			safetyAlarm;
 		int			blackboxPhase[4];
 		
-		geometry_msgs::Pose blackboxPose;
-		
+		geometry_msgs::Pose 		blackboxPose;
+		std_msgs::Int8MultiArray	safetyMeasureAlarm;
+
 	private:
 		ros::NodeHandle		nh;
 
 		ros::Subscriber		sub_userControlInfo;
-		ros::Subscriber		sub_safetyInfo;
+		ros::Subscriber 	sub_sensorPressure;
+		ros::Subscriber 	sub_sensorRange;
+		ros::Publisher  	pub_safety;
 		
-		ros::ServiceClient	runBlackboxGotoPoseSrv;
-
 		geometry_msgs::Pose			robotCurrentPose;
 		geometry_msgs::Pose			robotLastPose;
 		geometry_msgs::PoseStamped  robotDesiredPosition;
@@ -60,7 +63,9 @@ class Hrov_control
 		void blackboxPosition();
 		void BlackboxGotoPose();
 		void GoToSurface();
-		void safetyMeasuresCallback(const std_msgs::Int8MultiArray::ConstPtr& msg);
 		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
+		void sensorPressureCallback(const underwater_sensor_msgs::Pressure::ConstPtr& pressureValue);
+		void sensorRangeCallback(const sensor_msgs::Range::ConstPtr& rangeValue);
+
 
 };

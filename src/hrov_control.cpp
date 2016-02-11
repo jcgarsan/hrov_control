@@ -14,37 +14,46 @@
 #include <string.h>
 #include "../include/hrov_control/hrov_control.h"
 
+#define pressureThreshold	0.5
+#define rangeThreshold 		1.0
+#define num_sensors			2		// 0 = is there an alarm?, 1 = surface, 2 = seafloor
+
 //DEBUG Flags
 #define DEBUG_FLAG			0
-#define DEBUG_FLAG_CALLBACK	0
+#define DEBUG_FLAG_SAFETY	0
 
 using namespace std;
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "Hrov_control");
-  Hrov_control HrovControl;
-  ros::spin();
+	ros::init(argc, argv, "Hrov_control");
+	Hrov_control HrovControl;
+	ros::spin();
+  
 }
 
 
 Hrov_control::Hrov_control()
 {
-	safetyAlarm			= 0;
-	userControlRequest	= false;
-	
+	userControlRequestAlarm  = false;
+	userControlRequestButton = false;
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
 	missionType = 0;
+
+	for (int i=0; i<=num_sensors+1; i++)
+		safetyMeasureAlarm.data.push_back(0);
+
 
 	for (int i=0; i<4; i++)
 		blackboxPhase[i] = 0;
 
 	//Subscribers initialization
-	sub_safetyInfo = nh.subscribe<std_msgs::Int8MultiArray>("safetyMeasures", 1, &Hrov_control::safetyMeasuresCallback,this);
 	sub_userControlInfo = nh.subscribe<std_msgs::Bool>("userControlRequest", 1, &Hrov_control::userControlReqCallback, this);
+	sub_sensorPressure = nh.subscribe<underwater_sensor_msgs::Pressure>("g500/pressure", 1, &Hrov_control::sensorPressureCallback, this);
+	sub_sensorRange = nh.subscribe<sensor_msgs::Range>("uwsim/g500/range", 1, &Hrov_control::sensorRangeCallback, this);
 	
-	//Services initialization
-	runBlackboxGotoPoseSrv = nh.serviceClient<hrov_control::HrovControlStdMsg>("runBlackboxGotoPoseSrv");
+	//Publishers initialization
+    pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasures", 1);
 
 	missionMenu();
 }
@@ -54,8 +63,6 @@ Hrov_control::~Hrov_control()
 {
 	//Destructor
 }
-
-
 
 
 /************************************************************************/
@@ -149,6 +156,7 @@ void Hrov_control::blackboxMenu()
 	}
 }
 
+
 void Hrov_control::blackboxPosition()
 {
 	cout << "Starting phase 1: Go to target position..." << endl;
@@ -171,62 +179,105 @@ void Hrov_control::blackboxPosition()
 
 void Hrov_control::BlackboxGotoPose()
 {
-	hrov_control::HrovControlStdMsg startStopSrv;
-
-	startStopSrv.request.boolValue = true;
-	startStopSrv.request.robotTargetPosition.position.x = robotDesiredPosition.pose.position.x;
-	startStopSrv.request.robotTargetPosition.position.y = robotDesiredPosition.pose.position.y;
-	startStopSrv.request.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
-
-	ROS_INFO_STREAM("Starting the mission... ");
-	if (runBlackboxGotoPoseSrv.call(startStopSrv))
-	{
-		ROS_INFO_STREAM("Finished mission: " << startStopSrv.response);
-		if (startStopSrv.response.boolValue)
-		{
-			blackboxPhase[0] = 1;
-			cout << "BlackboxGotoPose achieved successfully. blackboxPhase[] = " ;
-			for (int i=0; i<4; i++)
-				cout << blackboxPhase[i] << ", ";
-			cout << endl;
-			missionMenu();
-		}
-		else
-		{
-			cout << "BlackboxGotoPose failed. blackboxPhase[] = " ;
-			for (int i=0; i<4; i++)
-				cout << blackboxPhase[i] << ", ";
-			cout << endl;
-		}
-	}
-	else
-		ROS_INFO_STREAM("Failed to call service runBlackboxGotoPoseSrv");
+	actionlib::SimpleActionClient<thruster_control::goToPoseAction> ac("GoToPoseAction", true);
+	thruster_control::goToPoseGoal goal;
+	ros::spinOnce();
+	
+	ROS_INFO("Waiting for action server to start");
+	ac.waitForServer();	
+	goal.boolValue = true;
+	goal.robotTargetPosition.position.x = robotDesiredPosition.pose.position.x;
+	goal.robotTargetPosition.position.y = robotDesiredPosition.pose.position.y;
+	goal.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
+	ac.sendGoal(goal);
 }
 
 
 void Hrov_control::GoToSurface()
 {
-	robotDesiredPosition.pose.position.x = 0;
-	robotDesiredPosition.pose.position.y = 0;
-	robotDesiredPosition.pose.position.z = 2;
-	BlackboxGotoPose();
+	actionlib::SimpleActionClient<thruster_control::goToPoseAction> ac("GoToPoseAction", true);
+	thruster_control::goToPoseGoal goal;
+	ros::spinOnce();
+	
+	ROS_INFO("Waiting for action server to start");
+	ac.waitForServer();	
+	goal.boolValue = true;
+	goal.robotTargetPosition.position.x = 0;
+	goal.robotTargetPosition.position.y = 0;
+	goal.robotTargetPosition.position.z = 2;
+	ac.sendGoal(goal);
 }
 
 
 /************************************************************************/
 /*							CALLBACKS									*/
 /************************************************************************/
+//Pressure sensor = safetyAlarm[1]
+void Hrov_control::sensorPressureCallback(const underwater_sensor_msgs::Pressure::ConstPtr& pressureValue)
+{
+	if (abs(pressureValue->pressure) < pressureThreshold)
+	{
+		safetyMeasureAlarm.data[0]	= 1;
+		safetyMeasureAlarm.data[1]	= 1;
+		userControlRequestAlarm		= true;
+	}
+	else
+		safetyMeasureAlarm.data[1] = 0;
+
+	if ((safetyMeasureAlarm.data[1] == 0) and (safetyMeasureAlarm.data[2] == 0))
+	{
+		safetyMeasureAlarm.data[0]	= 0;
+		userControlRequestAlarm		= false;
+	}
+
+	pub_safety.publish(safetyMeasureAlarm);
+		
+	if (DEBUG_FLAG_SAFETY)
+		cout << "sensorPressureAlarm: " << abs(pressureValue->pressure) << " :: " << (int) safetyMeasureAlarm.data[1] << endl;
+}
+
+
+//Range sensor = safetyAlarm[2]
+void Hrov_control::sensorRangeCallback(const sensor_msgs::Range::ConstPtr& rangeValue)
+{
+	if (rangeValue->range < rangeThreshold)
+	{
+		safetyMeasureAlarm.data[0]	= 1;
+		safetyMeasureAlarm.data[2]	= 1;
+		userControlRequestAlarm		= true;
+	}
+	else
+		safetyMeasureAlarm.data[2] = 0;
+	
+	if ((safetyMeasureAlarm.data[1] == 0) and (safetyMeasureAlarm.data[2] == 0))
+	{
+		safetyMeasureAlarm.data[0]	= 0;
+		userControlRequestAlarm		= false;
+	}
+	
+	pub_safety.publish(safetyMeasureAlarm);
+
+	if (DEBUG_FLAG_SAFETY)
+		cout << "sensorRangeAlarm: " << rangeValue->range << " :: " << (int) safetyMeasureAlarm.data[2] << endl;
+}
+
+
+//User control request = safetyAlarm[3]
 void Hrov_control::userControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 {
-	userControlRequest = msg->data;
-	if (DEBUG_FLAG_CALLBACK)
-		cout << "userControlRequestCallback: " << userControlRequest << endl;
+	//Has the user requested the control using the button?
+	userControlRequestButton = msg->data;
+
+	//We create the alarm if the user pushed the button or there is an alarm
+	if ((userControlRequestButton) or (userControlRequestAlarm))
+		safetyMeasureAlarm.data[num_sensors+1] = 1;
+	else
+		safetyMeasureAlarm.data[num_sensors+1] = 0;
+
+	pub_safety.publish(safetyMeasureAlarm);
+
+	if (DEBUG_FLAG_SAFETY)
+		cout << "userControlRequestCallback: " << (int) safetyMeasureAlarm.data[num_sensors+1] << endl;
 }
 
 
-void Hrov_control::safetyMeasuresCallback(const std_msgs::Int8MultiArray::ConstPtr& msg)
-{
-	safetyAlarm = msg->data[0];
-	if (DEBUG_FLAG_CALLBACK)
-		cout << "safetyMeasuresCallback: " << safetyAlarm << endl;
-}
