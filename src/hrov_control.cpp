@@ -190,6 +190,16 @@ void Hrov_control::BlackboxGotoPose()
 	goal.robotTargetPosition.position.y = robotDesiredPosition.pose.position.y;
 	goal.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
 	ac.sendGoal(goal);
+	ROS_INFO("Action sent to server");
+
+	if (ac.waitForResult(ros::Duration()))
+	{
+		actionlib::SimpleClientGoalState state = ac.getState();
+		ROS_INFO("Action finished: %s",state.toString().c_str());
+		missionMenu();
+	}
+	else
+		ROS_INFO("Action did not finish before the time out.");
 }
 
 
@@ -206,6 +216,16 @@ void Hrov_control::GoToSurface()
 	goal.robotTargetPosition.position.y = 0;
 	goal.robotTargetPosition.position.z = 2;
 	ac.sendGoal(goal);
+	ROS_INFO("Action sent to server");
+
+	if (ac.waitForResult(ros::Duration()))
+	{
+		actionlib::SimpleClientGoalState state = ac.getState();
+		ROS_INFO("Action finished: %s",state.toString().c_str());
+		missionMenu();
+	}
+	else
+		ROS_INFO("Action did not finish before the time out.");
 }
 
 
