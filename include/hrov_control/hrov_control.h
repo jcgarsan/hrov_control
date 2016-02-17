@@ -38,10 +38,11 @@ class Hrov_control
 		Hrov_control();
 		~Hrov_control();
 		
-		bool		userControlRequestAlarm;
-		bool		userControlRequestButton;
-		int			missionType;
-		int			blackboxPhase[4];
+		bool	userControlRequestAlarm;
+		bool	userControlRequestButton;
+		bool	goToPoseAcResult;
+		int		missionType;
+		int		blackboxPhase[4];
 		
 		geometry_msgs::Pose 		blackboxPose;
 		std_msgs::Int8MultiArray	safetyMeasureAlarm;
@@ -52,6 +53,7 @@ class Hrov_control
 		ros::Subscriber		sub_userControlInfo;
 		ros::Subscriber 	sub_sensorPressure;
 		ros::Subscriber 	sub_sensorRange;
+		ros::Subscriber		sub_goToPoseActionResult;
 		ros::Publisher  	pub_safety;
 		
 		geometry_msgs::Pose			robotCurrentPose;
@@ -66,6 +68,6 @@ class Hrov_control
 		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 		void sensorPressureCallback(const underwater_sensor_msgs::Pressure::ConstPtr& pressureValue);
 		void sensorRangeCallback(const sensor_msgs::Range::ConstPtr& rangeValue);
-
+		void goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg);
 
 };

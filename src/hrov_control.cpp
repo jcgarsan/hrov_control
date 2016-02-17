@@ -19,7 +19,6 @@
 #define num_sensors			2		// 0 = is there an alarm?, 1 = surface, 2 = seafloor
 
 //DEBUG Flags
-#define DEBUG_FLAG			0
 #define DEBUG_FLAG_SAFETY	0
 
 using namespace std;
@@ -37,6 +36,7 @@ Hrov_control::Hrov_control()
 {
 	userControlRequestAlarm  = false;
 	userControlRequestButton = false;
+	goToPoseAcResult		 = false;
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
 	missionType = 0;
 
@@ -51,6 +51,7 @@ Hrov_control::Hrov_control()
 	sub_userControlInfo = nh.subscribe<std_msgs::Bool>("userControlRequest", 1, &Hrov_control::userControlReqCallback, this);
 	sub_sensorPressure = nh.subscribe<underwater_sensor_msgs::Pressure>("g500/pressure", 1, &Hrov_control::sensorPressureCallback, this);
 	sub_sensorRange = nh.subscribe<sensor_msgs::Range>("uwsim/g500/range", 1, &Hrov_control::sensorRangeCallback, this);
+	sub_goToPoseActionResult = nh.subscribe<thruster_control::goToPoseActionResult>("GoToPoseAction/result", 1, &Hrov_control::goToPoseAcResultCallback, this);
 	
 	//Publishers initialization
     pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasures", 1);
@@ -191,15 +192,6 @@ void Hrov_control::BlackboxGotoPose()
 	goal.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
 	ac.sendGoal(goal);
 	ROS_INFO("Action sent to server");
-
-	if (ac.waitForResult(ros::Duration()))
-	{
-		actionlib::SimpleClientGoalState state = ac.getState();
-		ROS_INFO("Action finished: %s",state.toString().c_str());
-		missionMenu();
-	}
-	else
-		ROS_INFO("Action did not finish before the time out.");
 }
 
 
@@ -217,15 +209,6 @@ void Hrov_control::GoToSurface()
 	goal.robotTargetPosition.position.z = 2;
 	ac.sendGoal(goal);
 	ROS_INFO("Action sent to server");
-
-	if (ac.waitForResult(ros::Duration()))
-	{
-		actionlib::SimpleClientGoalState state = ac.getState();
-		ROS_INFO("Action finished: %s",state.toString().c_str());
-		missionMenu();
-	}
-	else
-		ROS_INFO("Action did not finish before the time out.");
 }
 
 
@@ -301,3 +284,20 @@ void Hrov_control::userControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 }
 
 
+//Check if the GoToPoseAction is finished
+void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg)
+{
+	goToPoseAcResult = msg->result.succeed;
+	
+	if (goToPoseAcResult)
+	{
+		ROS_INFO("Action finished successfully.");
+		missionMenu();
+	}
+	else
+		ROS_INFO("Action did not finish successfully.");
+		
+	if (DEBUG_FLAG_SAFETY)
+		cout << "goToPoseAcResult: " << (int) msg->result.succeed << endl;
+	
+}
