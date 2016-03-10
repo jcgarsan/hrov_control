@@ -41,11 +41,14 @@ class Hrov_control
 		bool	userControlRequestAlarm;
 		bool	userControlRequestButton;
 		bool	goToPoseAcResult;
+		bool	stKeeping;
 		int		missionType;
-		int		blackboxPhase[4];
+		int		objectRecoveryPhase[4];
 		
-		geometry_msgs::Pose 		blackboxPose;
+		geometry_msgs::Pose 		objectPose;
 		std_msgs::Int8MultiArray	safetyMeasureAlarm;
+		
+		actionlib::SimpleActionClient<thruster_control::goToPoseAction> *ac;
 
 	private:
 		ros::NodeHandle		nh;
@@ -61,10 +64,11 @@ class Hrov_control
 		geometry_msgs::PoseStamped  robotDesiredPosition;
 
 		void missionMenu();
-		void blackboxMenu();
-		void blackboxPosition();
-		void BlackboxGotoPose();
-		void GoToSurface();
+		void objectRecoveryMenu();
+		void objectPosition();
+		void objectGotoPose();
+		void goToSurface();
+		void stationKeeping();
 		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 		void sensorPressureCallback(const underwater_sensor_msgs::Pressure::ConstPtr& pressureValue);
 		void sensorRangeCallback(const sensor_msgs::Range::ConstPtr& rangeValue);
