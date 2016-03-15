@@ -219,6 +219,7 @@ void Hrov_control::stationKeeping()
 	ac->sendGoal(goal);
 	ROS_INFO("Action sent to server");
 	missionMenu();
+	objectRecoveryPhase[2] = 1;
 }
 
 
@@ -323,7 +324,10 @@ void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActi
 		missionMenu();
 	}
 	else
+	{
 		ROS_INFO("Action did not finish successfully or has been aborted by the user.");
+		missionMenu();
+	}
 	
 	if (DEBUG_FLAG_SAFETY)
 		cout << "goToPoseAcResult: " << (int) msg->result.succeed << endl;
