@@ -44,7 +44,7 @@ Hrov_control::Hrov_control()
 	for (int i=0; i<=num_sensors+1; i++)
 		safetyMeasureAlarm.data.push_back(0);
 
-	for (int i=0; i<4; i++)
+	for (int i=0; i<5; i++)
 		objectRecoveryPhase[i] = 0;
 
 	//Subscribers initialization
@@ -111,7 +111,10 @@ void Hrov_control::missionMenu()
 				goToSurface();
 				break;
 			case 9:
-				cout << "Testing the system..." << endl;
+				cout << "Testing the system. Press 0 to return" << endl;
+				cin >> missionType;
+				if (missionType == 0)
+					missionMenu();
 				break;
 		}
 	}
@@ -218,8 +221,8 @@ void Hrov_control::stationKeeping()
 	goal.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
 	ac->sendGoal(goal);
 	ROS_INFO("Action sent to server");
-	missionMenu();
 	objectRecoveryPhase[2] = 1;
+	missionMenu();
 }
 
 
@@ -237,6 +240,7 @@ void Hrov_control::goToSurface()
 	goal.robotTargetPosition.position.z = 2;
 	ac->sendGoal(goal);
 	ROS_INFO("Action sent to server");
+	objectRecoveryPhase[4] = 1;
 }
 
 
@@ -315,19 +319,25 @@ void Hrov_control::userControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 //Check if the GoToPoseAction is finished
 void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg)
 {
+	int backMenu;
 	goToPoseAcResult = msg->result.succeed;
 	
 	if (goToPoseAcResult)
 	{
 		ROS_INFO("Action finished successfully.");
 		objectRecoveryPhase[0] = 1;
-		missionMenu();
+		//missionMenu();
 	}
 	else
 	{
 		ROS_INFO("Action did not finish successfully or has been aborted by the user.");
-		missionMenu();
+		userControlRequestAlarm = true;
+		//ROS_INFO("The user has the robot control. Enter 0 to return the main menu...");
+		//cin >> backMenu;
+		//if(backMenu == 0) 
+			//missionMenu();
 	}
+	missionMenu();
 	
 	if (DEBUG_FLAG_SAFETY)
 		cout << "goToPoseAcResult: " << (int) msg->result.succeed << endl;

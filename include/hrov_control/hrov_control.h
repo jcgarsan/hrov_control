@@ -43,7 +43,7 @@ class Hrov_control
 		bool	goToPoseAcResult;
 		bool	stKeeping;
 		int		missionType;
-		int		objectRecoveryPhase[4];
+		int		objectRecoveryPhase[5];
 		
 		geometry_msgs::Pose 		objectPose;
 		std_msgs::Int8MultiArray	safetyMeasureAlarm;
