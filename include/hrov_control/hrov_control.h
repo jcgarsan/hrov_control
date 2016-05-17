@@ -42,8 +42,10 @@ class Hrov_control
 		bool	userControlRequestButton;
 		bool	goToPoseAcResult;
 		bool	stKeeping;
+		bool	armControl;
 		int		missionType;
-		int		objectRecoveryPhase[5];
+		int		objectRecoveryPhase[6];
+		int		dredgingPhase[6];
 		
 		geometry_msgs::Pose 		objectPose;
 		std_msgs::Int8MultiArray	safetyMeasureAlarm;
@@ -58,13 +60,16 @@ class Hrov_control
 		ros::Subscriber 	sub_sensorRange;
 		ros::Subscriber		sub_goToPoseActionResult;
 		ros::Publisher  	pub_safety;
+		ros::Publisher  	pub_armControl;
 		
 		geometry_msgs::Pose			robotCurrentPose;
 		geometry_msgs::Pose			robotLastPose;
 		geometry_msgs::PoseStamped  robotDesiredPosition;
 
 		void missionMenu();
+		void systemTest();
 		void objectRecoveryMenu();
+		void dredgingMenu();
 		void objectPosition();
 		void objectGotoPose();
 		void goToSurface();

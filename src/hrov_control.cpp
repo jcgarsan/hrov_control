@@ -38,15 +38,19 @@ Hrov_control::Hrov_control()
 	userControlRequestButton = false;
 	goToPoseAcResult		 = false;
 	stKeeping				 = false;
+	armControl				 = false;
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
 	missionType = 0;
 
 	for (int i=0; i<=num_sensors+1; i++)
 		safetyMeasureAlarm.data.push_back(0);
 
-	for (int i=0; i<5; i++)
-		objectRecoveryPhase[i] = 0;
-
+	for (int i=0; i<6; i++)
+	{
+		objectRecoveryPhase[i]	= 0;
+		dredgingPhase[i]		= 0;
+	}
+	
 	//Subscribers initialization
 	sub_userControlInfo = nh.subscribe<std_msgs::Bool>("userControlRequest", 1, &Hrov_control::userControlReqCallback, this);
 	sub_sensorPressure = nh.subscribe<underwater_sensor_msgs::Pressure>("g500/pressure", 1, &Hrov_control::sensorPressureCallback, this);
@@ -55,6 +59,7 @@ Hrov_control::Hrov_control()
 	
 	//Publishers initialization
     pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasures", 1);
+    pub_armControl = nh.advertise<std_msgs::Bool>("armControl", 1);
 
 	//ACtion client initialization
 	ac = new actionlib::SimpleActionClient<thruster_control::goToPoseAction> ("GoToPoseAction", true);
@@ -82,6 +87,7 @@ void Hrov_control::missionMenu()
 	cout << "1) Survey" << endl;
 	cout << "2) Object recovery" << endl;
 	cout << "3) Panel intervention" << endl;
+	cout << "4) Dredging intervention" << endl;
 	cout << "8) Go to surface" << endl;
 	cout << "9) Test the system" << endl;
 	cout << "0) Exit" << endl;
@@ -106,15 +112,16 @@ void Hrov_control::missionMenu()
 			case 3:
 				cout << "Panel intervention..." << endl;
 				break;
+			case 4:
+				cout << "Dredging intervention..." << endl;
+				dredgingMenu();
+				break;
 			case 8:
 				cout << "Go to surface..." << endl;
 				goToSurface();
 				break;
 			case 9:
-				cout << "Testing the system. Press 0 to return" << endl;
-				cin >> missionType;
-				if (missionType == 0)
-					missionMenu();
+				systemTest();
 				break;
 		}
 	}
@@ -126,6 +133,26 @@ void Hrov_control::missionMenu()
 }
 
 
+void Hrov_control::systemTest()
+{
+	bool enableTesting = true;
+
+	cout << "Testing the system. Press userControlButton to test the system." << endl;
+	sleep(5);
+	safetyMeasureAlarm.data[num_sensors+1] = 1;
+	pub_safety.publish(safetyMeasureAlarm);
+
+	cout << "Press userControlButton to return main menu." << endl;
+	while (enableTesting)
+	{
+		ros::spinOnce();
+		enableTesting = userControlRequestButton;
+	}
+
+	missionMenu();
+
+}
+
 /************************************************************************/
 /*						 OBJECT RECOVERY								*/
 /************************************************************************/
@@ -133,10 +160,10 @@ void Hrov_control::objectRecoveryMenu()
 {
 	cout << "\n\rObject recovery menu" << endl;
 	cout << "-------------------------" << endl;
-	cout << "Select a mission type" << endl;
+	cout << "Select an option" << endl;
 	cout << "1) Set target position" << endl;
 	cout << "2) Init target detection" << endl;
-	cout << "3) Station keeping" << endl;
+	cout << "3) Vehicle station keeping" << endl;
 	cout << "0) Exit" << endl;
 
 	cout << "Mission type: ";
@@ -150,11 +177,12 @@ void Hrov_control::objectRecoveryMenu()
 				exit(0);
 				break;
 			case 1:
-//				objectRecoveryPhase[0] = 0;
 				objectPosition();
 				break;
 			case 2:
 				cout << "Target detection algorithm..." << endl;
+				objectRecoveryPhase[1] = 1;
+				objectRecoveryMenu();
 				break;
 			case 3:
 				cout << "Keeping current robot position..." << endl;
@@ -165,6 +193,57 @@ void Hrov_control::objectRecoveryMenu()
 	else
 	{
 		cout << "missionType should be between 0...3" << endl;
+		objectRecoveryMenu();
+	}
+}
+
+
+/************************************************************************/
+/*						 	DREDGING									*/
+/************************************************************************/
+void Hrov_control::dredgingMenu()
+{
+	cout << "\n\rDredging intervention menu" << endl;
+	cout << "-------------------------" << endl;
+	cout << "Select an option" << endl;
+	cout << "1) Set target position" << endl;
+	cout << "2) Init target detection" << endl;
+	cout << "3) Vehicle station keeping" << endl;
+	cout << "4) Manual dredging" << endl;
+	cout << "0) Exit" << endl;
+
+	cout << "Mission type: ";
+	cin >> missionType;
+	if ((missionType >= 0) and (missionType <= 3))
+	{
+		switch (missionType)
+		{
+			case 0:
+				cout << "Program finished..." << endl;
+				exit(0);
+				break;
+			case 1:
+				objectPosition();
+				break;
+			case 2:
+				cout << "Target detection algorithm..." << endl;
+				dredgingPhase[1] = 1;
+				dredgingMenu();
+				break;
+			case 3:
+				cout << "Keeping current robot position..." << endl;
+				stationKeeping();
+				break;
+			case 4:
+				cout << "Manual dredging..." << endl;
+				userControlRequestAlarm	= true;
+				armControl = true;
+				break;
+		}		
+	}
+	else
+	{
+		cout << "missionType should be between 0...4" << endl;
 		objectRecoveryMenu();
 	}
 }
@@ -181,7 +260,7 @@ void Hrov_control::objectPosition()
 	cin >> robotDesiredPosition.pose.position.z;
 	cout << endl;
 	
-	if (objectRecoveryPhase[0] == 1)
+	if ((objectRecoveryPhase[0] == 1) or (dredgingPhase[0] == 1))
 		cout << "The object position was set previously and it will be reset" << endl;
 
 	objectGotoPose();
@@ -194,6 +273,7 @@ void Hrov_control::objectGotoPose()
 	thruster_control::goToPoseGoal goal;
 	ros::spinOnce();
 	objectRecoveryPhase[0] = 0;
+	dredgingPhase[0] = 0;
 	
 	ROS_INFO("Waiting for action server to start");
 	ac->waitForServer();	
@@ -221,7 +301,9 @@ void Hrov_control::stationKeeping()
 	goal.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
 	ac->sendGoal(goal);
 	ROS_INFO("Action sent to server");
-	objectRecoveryPhase[2] = 1;
+	
+	objectRecoveryPhase[2]	= 1;
+	dredgingPhase[2]		= 1;
 	missionMenu();
 }
 
@@ -240,7 +322,9 @@ void Hrov_control::goToSurface()
 	goal.robotTargetPosition.position.z = 2;
 	ac->sendGoal(goal);
 	ROS_INFO("Action sent to server");
-	objectRecoveryPhase[4] = 1;
+	
+	objectRecoveryPhase[4]	= 1;
+	dredgingPhase[4]		= 1;
 }
 
 
@@ -326,6 +410,7 @@ void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActi
 	{
 		ROS_INFO("Action finished successfully.");
 		objectRecoveryPhase[0] = 1;
+		dredgingPhase[0] = 1;
 		//missionMenu();
 	}
 	else
