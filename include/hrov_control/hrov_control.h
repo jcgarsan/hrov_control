@@ -40,27 +40,34 @@ class Hrov_control
 		
 		bool	userControlRequestAlarm;
 		bool	userControlRequestButton;
+		bool	armControlRequestAlarm;
+		bool	armControlRequestButton;
 		bool	goToPoseAcResult;
 		bool	stKeeping;
-		bool	armControl;
+		bool	robotControl;
 		int		missionType;
 		int		objectRecoveryPhase[6];
 		int		dredgingPhase[6];
 		
 		geometry_msgs::Pose 		objectPose;
+		
 		std_msgs::Int8MultiArray	safetyMeasureAlarm;
+		std_msgs::Int8MultiArray	userControlAlarm;
+		std_msgs::Bool				armControlRequest;
 		
 		actionlib::SimpleActionClient<thruster_control::goToPoseAction> *ac;
 
 	private:
 		ros::NodeHandle		nh;
 
-		ros::Subscriber		sub_userControlInfo;
+		ros::Subscriber		sub_userControlRequest;
+		ros::Subscriber		sub_armControlRequest;
 		ros::Subscriber 	sub_sensorPressure;
 		ros::Subscriber 	sub_sensorRange;
 		ros::Subscriber		sub_goToPoseActionResult;
+
 		ros::Publisher  	pub_safety;
-		ros::Publisher  	pub_armControl;
+		ros::Publisher  	pub_userControl;
 		
 		geometry_msgs::Pose			robotCurrentPose;
 		geometry_msgs::Pose			robotLastPose;
@@ -75,6 +82,7 @@ class Hrov_control
 		void goToSurface();
 		void stationKeeping();
 		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
+		void armControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 		void sensorPressureCallback(const underwater_sensor_msgs::Pressure::ConstPtr& pressureValue);
 		void sensorRangeCallback(const sensor_msgs::Range::ConstPtr& rangeValue);
 		void goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg);

@@ -16,10 +16,11 @@
 
 #define pressureThreshold	0.5
 #define rangeThreshold 		1.0
-#define num_sensors			2		// #0 = is there an alarm?, #1 = surface, #2 = seafloor, #3 = userControl
+#define num_sensors			2		// #0 = is there an alarm?, #1 = surface, #2 = seafloor
 
 //DEBUG Flags
 #define DEBUG_FLAG_SAFETY	0
+#define DEBUG_FLAG_USER		0
 
 using namespace std;
 
@@ -36,14 +37,19 @@ Hrov_control::Hrov_control()
 {
 	userControlRequestAlarm  = false;
 	userControlRequestButton = false;
+	armControlRequestAlarm	 = false;
+	armControlRequestButton  = false;
 	goToPoseAcResult		 = false;
 	stKeeping				 = false;
-	armControl				 = false;
+	robotControl			 = true;
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
 	missionType = 0;
 
-	for (int i=0; i<=num_sensors+1; i++)
+	for (int i=0; i<=num_sensors; i++)
 		safetyMeasureAlarm.data.push_back(0);
+
+	for (int i=0; i<2; i++)
+		userControlAlarm.data.push_back(0);
 
 	for (int i=0; i<6; i++)
 	{
@@ -52,14 +58,15 @@ Hrov_control::Hrov_control()
 	}
 	
 	//Subscribers initialization
-	sub_userControlInfo = nh.subscribe<std_msgs::Bool>("userControlRequest", 1, &Hrov_control::userControlReqCallback, this);
+	sub_userControlRequest = nh.subscribe<std_msgs::Bool>("userControlRequest", 1, &Hrov_control::userControlReqCallback, this);
+	sub_armControlRequest = nh.subscribe<std_msgs::Bool>("armControlRequest", 1, &Hrov_control::armControlReqCallback, this);
 	sub_sensorPressure = nh.subscribe<underwater_sensor_msgs::Pressure>("g500/pressure", 1, &Hrov_control::sensorPressureCallback, this);
 	sub_sensorRange = nh.subscribe<sensor_msgs::Range>("uwsim/g500/range", 1, &Hrov_control::sensorRangeCallback, this);
 	sub_goToPoseActionResult = nh.subscribe<thruster_control::goToPoseActionResult>("GoToPoseAction/result", 1, &Hrov_control::goToPoseAcResultCallback, this);
 	
 	//Publishers initialization
-    pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasures", 1);
-    pub_armControl = nh.advertise<std_msgs::Bool>("armControl", 1);
+    pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasuresAlarm", 1);
+    pub_userControl = nh.advertise<std_msgs::Int8MultiArray>("userControlAlarm", 1);
 
 	//ACtion client initialization
 	ac = new actionlib::SimpleActionClient<thruster_control::goToPoseAction> ("GoToPoseAction", true);
@@ -136,11 +143,12 @@ void Hrov_control::missionMenu()
 void Hrov_control::systemTest()
 {
 	bool enableTesting = true;
+	userControlRequestAlarm	= true;
 
 	cout << "Testing the system. Press userControlButton to test the system." << endl;
 	sleep(5);
-	safetyMeasureAlarm.data[num_sensors+1] = 1;
-	pub_safety.publish(safetyMeasureAlarm);
+	userControlAlarm.data[0] = 1;
+	pub_safety.publish(userControlAlarm);
 
 	cout << "Press userControlButton to return main menu." << endl;
 	while (enableTesting)
@@ -236,8 +244,6 @@ void Hrov_control::dredgingMenu()
 				break;
 			case 4:
 				cout << "Manual dredging..." << endl;
-				userControlRequestAlarm	= true;
-				armControl = true;
 				break;
 		}		
 	}
@@ -381,24 +387,42 @@ void Hrov_control::sensorRangeCallback(const sensor_msgs::Range::ConstPtr& range
 }
 
 
-//User control request = safetyAlarm[3]
+//User control request = userControl[0]
 void Hrov_control::userControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 {
-	//Has the user requested the control using the button?
+	//Has the user requested the vehicle control using the button?
 	userControlRequestButton = msg->data;
 
 	//We create the alarm if the user pushed the button or there is an alarm
 	if ((userControlRequestButton) or (userControlRequestAlarm))
-		safetyMeasureAlarm.data[num_sensors+1] = 1;
+		userControlAlarm.data[0] = 1;
 	else
-		safetyMeasureAlarm.data[num_sensors+1] = 0;
+		userControlAlarm.data[0] = 0;
 
-	pub_safety.publish(safetyMeasureAlarm);
+	pub_userControl.publish(userControlAlarm);
 
-	if (DEBUG_FLAG_SAFETY)
-		cout << "userControlRequestCallback: " << (int) safetyMeasureAlarm.data[num_sensors+1] << endl;
+	if (DEBUG_FLAG_USER)
+		cout << "userControlRequestCallback: " << (int) userControlAlarm.data[0] << endl;
 }
 
+
+//Arm control request = userControl[1]
+void Hrov_control::armControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+	//Has the user requested the arm control using the button?
+	armControlRequestButton = msg->data;
+
+	//We create the alarm if the user pushed the button or there is an alarm
+	if ((armControlRequestButton) or (armControlRequestAlarm))
+		userControlAlarm.data[1] = 1;
+	else
+		userControlAlarm.data[1] = 0;
+
+	pub_userControl.publish(userControlAlarm);
+
+	if (DEBUG_FLAG_USER)
+		cout << "armControlRequestCallback: " << (int) userControlAlarm.data[1] << endl;
+}
 
 //Check if the GoToPoseAction is finished
 void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg)
