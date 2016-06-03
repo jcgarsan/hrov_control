@@ -42,6 +42,7 @@ Hrov_control::Hrov_control()
 	goToPoseAcResult		 = false;
 	stKeeping				 = false;
 	robotControl			 = true;
+	missionControlAlarm.data = -1;
 	robotLastPose.position.x = 0; robotLastPose.position.y = 0; robotLastPose.position.z = 0;
 	missionType = 0;
 
@@ -67,6 +68,7 @@ Hrov_control::Hrov_control()
 	//Publishers initialization
     pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasuresAlarm", 1);
     pub_userControl = nh.advertise<std_msgs::Int8MultiArray>("userControlAlarm", 1);
+    pub_missionControl = nh.advertise<std_msgs::Int8>("missionControlAlarm", 1);
 
 	//ACtion client initialization
 	ac = new actionlib::SimpleActionClient<thruster_control::goToPoseAction> ("GoToPoseAction", true);
@@ -278,8 +280,11 @@ void Hrov_control::objectGotoPose()
 //	actionlib::SimpleActionClient<thruster_control::goToPoseAction> ac("GoToPoseAction", true);
 	thruster_control::goToPoseGoal goal;
 	ros::spinOnce();
+	
 	objectRecoveryPhase[0] = 0;
 	dredgingPhase[0] = 0;
+	missionControlAlarm.data = -1;
+	pub_missionControl.publish(missionControlAlarm);
 	
 	ROS_INFO("Waiting for action server to start");
 	ac->waitForServer();	
@@ -318,6 +323,9 @@ void Hrov_control::goToSurface()
 {
 	thruster_control::goToPoseGoal goal;
 	ros::spinOnce();
+	
+	missionControlAlarm.data = -1;
+	pub_missionControl.publish(missionControlAlarm);
 	
 	ROS_INFO("Waiting for action server to start");
 	ac->waitForServer();	
@@ -427,24 +435,21 @@ void Hrov_control::armControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 //Check if the GoToPoseAction is finished
 void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg)
 {
-	int backMenu;
 	goToPoseAcResult = msg->result.succeed;
+	missionControlAlarm.data = msg->result.succeed;
+
+	pub_missionControl.publish(missionControlAlarm);
 	
 	if (goToPoseAcResult)
 	{
 		ROS_INFO("Action finished successfully.");
 		objectRecoveryPhase[0] = 1;
 		dredgingPhase[0] = 1;
-		//missionMenu();
 	}
 	else
 	{
 		ROS_INFO("Action did not finish successfully or has been aborted by the user.");
 		userControlRequestAlarm = true;
-		//ROS_INFO("The user has the robot control. Enter 0 to return the main menu...");
-		//cin >> backMenu;
-		//if(backMenu == 0) 
-			//missionMenu();
 	}
 	missionMenu();
 	

@@ -22,6 +22,7 @@
 #include <sensor_msgs/Range.h>
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int8.h>
 #include <std_msgs/Int8MultiArray.h>
 #include <underwater_sensor_msgs/Pressure.h>
 #include <actionlib/client/simple_action_client.h>
@@ -54,6 +55,7 @@ class Hrov_control
 		std_msgs::Int8MultiArray	safetyMeasureAlarm;
 		std_msgs::Int8MultiArray	userControlAlarm;
 		std_msgs::Bool				armControlRequest;
+		std_msgs::Int8				missionControlAlarm;
 		
 		actionlib::SimpleActionClient<thruster_control::goToPoseAction> *ac;
 
@@ -68,6 +70,7 @@ class Hrov_control
 
 		ros::Publisher  	pub_safety;
 		ros::Publisher  	pub_userControl;
+		ros::Publisher  	pub_missionControl;
 		
 		geometry_msgs::Pose			robotCurrentPose;
 		geometry_msgs::Pose			robotLastPose;
