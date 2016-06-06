@@ -105,6 +105,9 @@ void Hrov_control::missionMenu()
 	cin >> missionType;
 	if ((missionType >= 0) and (missionType <= 9))
 	{
+		missionControlAlarm.data = -1;
+		pub_missionControl.publish(missionControlAlarm);
+
 		switch (missionType)
 		{
 			case 0:
