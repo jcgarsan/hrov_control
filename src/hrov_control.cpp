@@ -64,6 +64,7 @@ Hrov_control::Hrov_control()
 	sub_sensorPressure = nh.subscribe<underwater_sensor_msgs::Pressure>("g500/pressure", 1, &Hrov_control::sensorPressureCallback, this);
 	sub_sensorRange = nh.subscribe<sensor_msgs::Range>("uwsim/g500/range", 1, &Hrov_control::sensorRangeCallback, this);
 	sub_goToPoseActionResult = nh.subscribe<thruster_control::goToPoseActionResult>("GoToPoseAction/result", 1, &Hrov_control::goToPoseAcResultCallback, this);
+	sub_robotRealPose = nh.subscribe<geometry_msgs::Pose>("g500/pose", 1, &Hrov_control::getRealRobotPoseCallback, this);
 	
 	//Publishers initialization
     pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasuresAlarm", 1);
@@ -293,9 +294,7 @@ void Hrov_control::objectGotoPose()
 	ac->waitForServer();	
 	goal.startAction = true;
 	goal.stationKeeping = false;
-	goal.robotTargetPosition.position.x = robotDesiredPosition.pose.position.x;
-	goal.robotTargetPosition.position.y = robotDesiredPosition.pose.position.y;
-	goal.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
+	goal.robotTargetPosition.position = robotDesiredPosition.pose.position;
 	ac->sendGoal(goal);
 	ROS_INFO("Action sent to server");
 }
@@ -310,9 +309,8 @@ void Hrov_control::stationKeeping()
 	ac->waitForServer();	
 	goal.startAction = true;
 	goal.stationKeeping = true;
-	goal.robotTargetPosition.position.x = robotDesiredPosition.pose.position.x;
-	goal.robotTargetPosition.position.y = robotDesiredPosition.pose.position.y;
-	goal.robotTargetPosition.position.z = robotDesiredPosition.pose.position.z;
+	//goal.robotTargetPosition.position = robotDesiredPosition.pose.position;
+	goal.robotTargetPosition.position = robotRealPose.position;
 	ac->sendGoal(goal);
 	ROS_INFO("Action sent to server");
 	
@@ -459,4 +457,13 @@ void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActi
 	if (DEBUG_FLAG_SAFETY)
 		cout << "goToPoseAcResult: " << (int) msg->result.succeed << endl;
 	
+}
+
+
+void Hrov_control::getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr& msg)
+{
+	robotRealPose.position = msg->position;
+	robotRealPose.orientation = msg->orientation;
+
+	//cout << "Odometry: \n" << robotRealPose << endl;
 }

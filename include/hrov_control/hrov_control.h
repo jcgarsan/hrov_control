@@ -67,6 +67,7 @@ class Hrov_control
 		ros::Subscriber 	sub_sensorPressure;
 		ros::Subscriber 	sub_sensorRange;
 		ros::Subscriber		sub_goToPoseActionResult;
+		ros::Subscriber		sub_robotRealPose;
 
 		ros::Publisher  	pub_safety;
 		ros::Publisher  	pub_userControl;
@@ -74,6 +75,7 @@ class Hrov_control
 		
 		geometry_msgs::Pose			robotCurrentPose;
 		geometry_msgs::Pose			robotLastPose;
+		geometry_msgs::Pose 		robotRealPose;
 		geometry_msgs::PoseStamped  robotDesiredPosition;
 
 		void missionMenu();
@@ -89,5 +91,6 @@ class Hrov_control
 		void sensorPressureCallback(const underwater_sensor_msgs::Pressure::ConstPtr& pressureValue);
 		void sensorRangeCallback(const sensor_msgs::Range::ConstPtr& rangeValue);
 		void goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg);
+		void getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr& msg);
 
 };
