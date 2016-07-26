@@ -18,9 +18,12 @@
 #define rangeThreshold 		1.0
 #define num_sensors			2		// #0 = is there an alarm?, #1 = surface, #2 = seafloor
 
+#define userMenuAcitvated	1
+
 //DEBUG Flags
 #define DEBUG_FLAG_SAFETY	0
 #define DEBUG_FLAG_USER		0
+#define DEBUG_FLAG_MENU		0
 
 using namespace std;
 
@@ -52,6 +55,9 @@ Hrov_control::Hrov_control()
 	for (int i=0; i<2; i++)
 		userControlAlarm.data.push_back(0);
 
+	for (int i=0; i<5; i++)
+		userMenuData.data.push_back(0);
+	
 	for (int i=0; i<6; i++)
 	{
 		objectRecoveryPhase[i]	= 0;
@@ -65,6 +71,7 @@ Hrov_control::Hrov_control()
 	sub_sensorRange = nh.subscribe<sensor_msgs::Range>("uwsim/g500/range", 1, &Hrov_control::sensorRangeCallback, this);
 	sub_goToPoseActionResult = nh.subscribe<thruster_control::goToPoseActionResult>("GoToPoseAction/result", 1, &Hrov_control::goToPoseAcResultCallback, this);
 	sub_robotRealPose = nh.subscribe<geometry_msgs::Pose>("g500/pose", 1, &Hrov_control::getRealRobotPoseCallback, this);
+	sub_userMenu = nh.subscribe<std_msgs::Int8MultiArray>("userMenuData", 1, &Hrov_control::getUserMenuData, this);
 	
 	//Publishers initialization
     pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasuresAlarm", 1);
@@ -74,7 +81,10 @@ Hrov_control::Hrov_control()
 	//ACtion client initialization
 	ac = new actionlib::SimpleActionClient<thruster_control::goToPoseAction> ("GoToPoseAction", true);
 
-	missionMenu();
+	if (userMenuAcitvated)
+		userMenuControl();
+	else
+		missionMenu();
 }
 
 
@@ -85,22 +95,34 @@ Hrov_control::~Hrov_control()
 }
 
 
+
+/************************************************************************/
+/*						USER MENU FUNCTIONS								*/
+/************************************************************************/
+
+
+
+void Hrov_control::userMenuControl()
+{
+	cout << "Using data from the user menu" << endl;
+}
+
+
 /************************************************************************/
 /*						COMMON FUNCTIONS								*/
 /************************************************************************/
-
 void Hrov_control::missionMenu()
 {
 	cout << "\n\rHROV mission control menu" << endl;
 	cout << "-------------------------" << endl;
 	cout << "Select a mission type" << endl;
-	cout << "1) Survey" << endl;
-	cout << "2) Object recovery" << endl;
-	cout << "3) Panel intervention" << endl;
-	cout << "4) Dredging intervention" << endl;
-	cout << "8) Go to surface" << endl;
-	cout << "9) Test the system" << endl;
-	cout << "0) Exit" << endl;
+	cout << "0) Survey" << endl;
+	cout << "1) Object recovery" << endl;
+	cout << "2) Panel intervention" << endl;
+	cout << "3) Dredging intervention" << endl;
+	cout << "4) Go to surface" << endl;
+	cout << "5) Test the system" << endl;
+	cout << "6) Exit" << endl;
 	
 	cout << "Mission type: ";
 	cin >> missionType;
@@ -112,29 +134,29 @@ void Hrov_control::missionMenu()
 		switch (missionType)
 		{
 			case 0:
-				cout << "Program finished..." << endl;
-				exit(0);
-				break;
-			case 1:
 				cout << "Survey specification menu..." << endl;
 				break;
-			case 2:
+			case 1:
 				cout << "Object recovery mission..." << endl;
 				objectRecoveryMenu();
 				break;
-			case 3:
+			case 2:
 				cout << "Panel intervention..." << endl;
 				break;
-			case 4:
+			case 3:
 				cout << "Dredging intervention..." << endl;
 				dredgingMenu();
 				break;
-			case 8:
+			case 4:
 				cout << "Go to surface..." << endl;
 				goToSurface();
 				break;
-			case 9:
+			case 5:
 				systemTest();
+				break;
+			case 6:
+				cout << "Program finished..." << endl;
+				exit(0);
 				break;
 		}
 	}
@@ -163,9 +185,12 @@ void Hrov_control::systemTest()
 		enableTesting = userControlRequestButton;
 	}
 
-	missionMenu();
-
+	if (userMenuAcitvated)
+		userMenuControl();
+	else
+		missionMenu();
 }
+
 
 /************************************************************************/
 /*						 OBJECT RECOVERY								*/
@@ -340,6 +365,11 @@ void Hrov_control::goToSurface()
 	
 	objectRecoveryPhase[4]	= 1;
 	dredgingPhase[4]		= 1;
+
+	if (userMenuAcitvated)
+		userMenuControl();
+	else
+		missionMenu();	
 }
 
 
@@ -433,6 +463,7 @@ void Hrov_control::armControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 		cout << "armControlRequestCallback: " << (int) userControlAlarm.data[1] << endl;
 }
 
+
 //Check if the GoToPoseAction is finished
 void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg)
 {
@@ -456,7 +487,6 @@ void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActi
 	
 	if (DEBUG_FLAG_SAFETY)
 		cout << "goToPoseAcResult: " << (int) msg->result.succeed << endl;
-	
 }
 
 
@@ -466,4 +496,33 @@ void Hrov_control::getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr&
 	robotRealPose.orientation = msg->orientation;
 
 	//cout << "Odometry: \n" << robotRealPose << endl;
+}
+
+
+void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg)
+{
+	userMenuData.data = msg->data;
+	function = userMenuData.data[3] * 10 + userMenuData.data[4];
+
+	if (userMenuData.data[2] == 1)
+	{
+		switch(function)
+		{
+			case 4:
+				cout << "Go to surface..." << endl;
+				goToSurface();
+				break;
+			case 5:
+				systemTest();
+				break;
+			case 6:
+				cout << "Program finished..." << endl;
+				exit(0);
+				break;
+		}
+	}
+
+
+	if (DEBUG_FLAG_MENU)
+		cout << "userMenuData.data[2]: " << (int) userMenuData.data[2] << ". Function to execute: " << function << endl;
 }

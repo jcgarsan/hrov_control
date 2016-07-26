@@ -47,6 +47,7 @@ class Hrov_control
 		bool	stKeeping;
 		bool	robotControl;
 		int		missionType;
+		int 	function;
 		int		objectRecoveryPhase[6];
 		int		dredgingPhase[6];
 		
@@ -54,6 +55,7 @@ class Hrov_control
 		
 		std_msgs::Int8MultiArray	safetyMeasureAlarm;
 		std_msgs::Int8MultiArray	userControlAlarm;
+		std_msgs::Int8MultiArray	userMenuData;
 		std_msgs::Bool				armControlRequest;
 		std_msgs::Int8				missionControlAlarm;
 		
@@ -68,6 +70,7 @@ class Hrov_control
 		ros::Subscriber 	sub_sensorRange;
 		ros::Subscriber		sub_goToPoseActionResult;
 		ros::Subscriber		sub_robotRealPose;
+		ros::Subscriber		sub_userMenu;
 
 		ros::Publisher  	pub_safety;
 		ros::Publisher  	pub_userControl;
@@ -86,11 +89,13 @@ class Hrov_control
 		void objectGotoPose();
 		void goToSurface();
 		void stationKeeping();
+		void userMenuControl();
 		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 		void armControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 		void sensorPressureCallback(const underwater_sensor_msgs::Pressure::ConstPtr& pressureValue);
 		void sensorRangeCallback(const sensor_msgs::Range::ConstPtr& rangeValue);
 		void goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg);
 		void getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr& msg);
+		void getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg);
 
 };
