@@ -23,7 +23,7 @@
 //DEBUG Flags
 #define DEBUG_FLAG_SAFETY	0
 #define DEBUG_FLAG_USER		0
-#define DEBUG_FLAG_MENU		0
+#define DEBUG_FLAG_MENU		1
 
 using namespace std;
 
@@ -156,6 +156,7 @@ void Hrov_control::missionMenu()
 				break;
 			case 6:
 				cout << "Program finished..." << endl;
+				system("pkill roslaunch");
 				exit(0);
 				break;
 		}
@@ -249,7 +250,7 @@ void Hrov_control::dredgingMenu()
 	cout << "2) Init target detection" << endl;
 	cout << "3) Vehicle station keeping" << endl;
 	cout << "4) Manual dredging" << endl;
-	cout << "0) Exit" << endl;
+	//cout << "0) Exit" << endl;
 
 	cout << "Mission type: ";
 	cin >> missionType;
@@ -259,6 +260,7 @@ void Hrov_control::dredgingMenu()
 		{
 			case 0:
 				cout << "Program finished..." << endl;
+				system("pkill roslaunch");
 				exit(0);
 				break;
 			case 1:
@@ -281,22 +283,32 @@ void Hrov_control::dredgingMenu()
 	else
 	{
 		cout << "missionType should be between 0...4" << endl;
-		objectRecoveryMenu();
+		dredgingMenu();
 	}
 }
 
 
 void Hrov_control::objectPosition()
 {
-	cout << "Starting phase 1: Go to target position..." << endl;
-	cout << "Enter target x-location: ";
-	cin >> robotDesiredPosition.pose.position.x;
-	cout << "Enter target y-location: ";
-	cin >> robotDesiredPosition.pose.position.y;
-	cout << "Enter target z-location: ";
-	cin >> robotDesiredPosition.pose.position.z;
-	cout << endl;
-	
+	if (userMenuAcitvated)
+	{
+		robotDesiredPosition.pose.position.x = 10;
+		robotDesiredPosition.pose.position.y =  5;
+		robotDesiredPosition.pose.position.z =  5;
+		cout << "Target position defined: {10, 5, 5}" << endl;
+	}
+	else
+	{
+		cout << "Starting phase 1: Go to target position..." << endl;
+		cout << "Enter target x-location: ";
+		cin >> robotDesiredPosition.pose.position.x;
+		cout << "Enter target y-location: ";
+		cin >> robotDesiredPosition.pose.position.y;
+		cout << "Enter target z-location: ";
+		cin >> robotDesiredPosition.pose.position.z;
+		cout << endl;
+	}
+
 	if ((objectRecoveryPhase[0] == 1) or (dredgingPhase[0] == 1))
 		cout << "The object position was set previously and it will be reset" << endl;
 
@@ -310,14 +322,14 @@ void Hrov_control::objectGotoPose()
 	thruster_control::goToPoseGoal goal;
 	ros::spinOnce();
 	
-	objectRecoveryPhase[0] = 0;
-	dredgingPhase[0] = 0;
+	dredgingPhase[0] 		 = 0;
+	objectRecoveryPhase[0] 	 = 0;
 	missionControlAlarm.data = -1;
 	pub_missionControl.publish(missionControlAlarm);
 	
 	ROS_INFO("Waiting for action server to start");
 	ac->waitForServer();	
-	goal.startAction = true;
+	goal.startAction	= true;
 	goal.stationKeeping = false;
 	goal.robotTargetPosition.position = robotDesiredPosition.pose.position;
 	ac->sendGoal(goal);
@@ -332,8 +344,8 @@ void Hrov_control::stationKeeping()
 	
 	ROS_INFO("Waiting for action server to start");
 	ac->waitForServer();	
-	goal.startAction = true;
-	goal.stationKeeping = true;
+	goal.startAction	= true;
+	goal.stationKeeping	= true;
 	//goal.robotTargetPosition.position = robotDesiredPosition.pose.position;
 	goal.robotTargetPosition.position = robotRealPose.position;
 	ac->sendGoal(goal);
@@ -341,7 +353,11 @@ void Hrov_control::stationKeeping()
 	
 	objectRecoveryPhase[2]	= 1;
 	dredgingPhase[2]		= 1;
-	missionMenu();
+
+	if (userMenuAcitvated)
+		userMenuControl();
+	else
+		missionMenu();	
 }
 
 
@@ -355,7 +371,7 @@ void Hrov_control::goToSurface()
 	
 	ROS_INFO("Waiting for action server to start");
 	ac->waitForServer();	
-	goal.startAction = true;
+	goal.startAction 	= true;
 	goal.stationKeeping = false;
 	goal.robotTargetPosition.position.x = 0;
 	goal.robotTargetPosition.position.y = 0;
@@ -475,15 +491,19 @@ void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActi
 	if (goToPoseAcResult)
 	{
 		ROS_INFO("Action finished successfully.");
-		objectRecoveryPhase[0] = 1;
-		dredgingPhase[0] = 1;
+		objectRecoveryPhase[0] 	= 1;
+		dredgingPhase[0] 		= 1;
 	}
 	else
 	{
 		ROS_INFO("Action did not finish successfully or has been aborted by the user.");
 		userControlRequestAlarm = true;
 	}
-	missionMenu();
+
+	if (userMenuAcitvated)
+		userMenuControl();
+	else
+		missionMenu();	
 	
 	if (DEBUG_FLAG_SAFETY)
 		cout << "goToPoseAcResult: " << (int) msg->result.succeed << endl;
@@ -492,7 +512,7 @@ void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActi
 
 void Hrov_control::getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr& msg)
 {
-	robotRealPose.position = msg->position;
+	robotRealPose.position 	  = msg->position;
 	robotRealPose.orientation = msg->orientation;
 
 	//cout << "Odometry: \n" << robotRealPose << endl;
@@ -501,6 +521,7 @@ void Hrov_control::getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr&
 
 void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg)
 {
+	cout << "getUserMenuData" << endl;
 	userMenuData.data = msg->data;
 	function = userMenuData.data[3] * 10 + userMenuData.data[4];
 
@@ -513,15 +534,20 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 				goToSurface();
 				break;
 			case 5:
+				cout << "Testing the system..." << endl;
 				systemTest();
 				break;
 			case 6:
 				cout << "Program finished..." << endl;
+				system("pkill roslaunch");
 				exit(0);
+				break;
+			case 40:
+				cout << "Sending the robot to the target position..." << endl;
+				objectPosition();
 				break;
 		}
 	}
-
 
 	if (DEBUG_FLAG_MENU)
 		cout << "userMenuData.data[2]: " << (int) userMenuData.data[2] << ". Function to execute: " << function << endl;
