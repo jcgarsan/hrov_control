@@ -23,7 +23,7 @@
 //DEBUG Flags
 #define DEBUG_FLAG_SAFETY	0
 #define DEBUG_FLAG_USER		0
-#define DEBUG_FLAG_MENU		1
+#define DEBUG_FLAG_MENU		0
 
 using namespace std;
 
@@ -318,7 +318,6 @@ void Hrov_control::objectPosition()
 
 void Hrov_control::objectGotoPose()
 {
-//	actionlib::SimpleActionClient<thruster_control::goToPoseAction> ac("GoToPoseAction", true);
 	thruster_control::goToPoseGoal goal;
 	ros::spinOnce();
 	
@@ -521,7 +520,7 @@ void Hrov_control::getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr&
 
 void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg)
 {
-	cout << "getUserMenuData" << endl;
+	//cout << "getUserMenuData" << endl;
 	userMenuData.data = msg->data;
 	function = userMenuData.data[3] * 10 + userMenuData.data[4];
 
