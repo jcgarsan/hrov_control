@@ -83,12 +83,14 @@ class Hrov_control
 
 		void missionMenu();
 		void systemTest();
+		void manualArmControl();
 		void objectRecoveryMenu();
 		void dredgingMenu();
 		void objectPosition();
 		void objectGotoPose();
 		void goToSurface();
 		void stationKeeping();
+		void disableStationKeeping();
 		void userMenuControl();
 		void userControlReqCallback(const std_msgs::Bool::ConstPtr& msg);
 		void armControlReqCallback(const std_msgs::Bool::ConstPtr& msg);

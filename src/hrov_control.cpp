@@ -171,7 +171,7 @@ void Hrov_control::missionMenu()
 
 void Hrov_control::systemTest()
 {
-	bool enableTesting = true;
+	bool enableTesting		= true;
 	userControlRequestAlarm	= true;
 
 	cout << "Testing the system. Press userControlButton to test the system." << endl;
@@ -185,6 +185,32 @@ void Hrov_control::systemTest()
 		ros::spinOnce();
 		enableTesting = userControlRequestButton;
 	}
+
+	if (userMenuAcitvated)
+		userMenuControl();
+	else
+		missionMenu();
+}
+
+
+void Hrov_control::manualArmControl()
+{
+	bool enableTesting 		= true;
+	armControlRequestAlarm  = true;
+
+	cout << "Manual arm control. Press armControlButton to enable the arm control." << endl;
+	sleep(5);
+	userControlAlarm.data[1] = 1;
+	pub_safety.publish(userControlAlarm);
+
+	cout << "Press armControlButton to return main menu." << endl;
+	while (enableTesting)
+	{
+		ros::spinOnce();
+		enableTesting = armControlRequestButton;
+	}
+
+	armControlRequestAlarm = false;
 
 	if (userMenuAcitvated)
 		userMenuControl();
@@ -352,6 +378,7 @@ void Hrov_control::stationKeeping()
 	
 	objectRecoveryPhase[2]	= 1;
 	dredgingPhase[2]		= 1;
+	stKeeping 				= true;
 
 	if (userMenuAcitvated)
 		userMenuControl();
@@ -359,6 +386,13 @@ void Hrov_control::stationKeeping()
 		missionMenu();	
 }
 
+
+void Hrov_control::disableStationKeeping()
+{
+	robotDesiredPosition.pose.position = robotRealPose.position;
+	stKeeping = false;
+	objectGotoPose();
+}
 
 void Hrov_control::goToSurface()
 {
@@ -538,12 +572,30 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 				break;
 			case 6:
 				cout << "Program finished..." << endl;
+				system("pkill navigatorPIcont");
+				system("pkill thrusterAllocat");
 				system("pkill roslaunch");
 				exit(0);
 				break;
 			case 40:
 				cout << "Sending the robot to the target position..." << endl;
 				objectPosition();
+				break;
+			case 42:
+				if (!stKeeping)
+				{
+					cout << "Enabling the stationKeeping algorithm..." << endl;
+					stationKeeping();
+				}
+				else
+				{
+					cout << "Disabling the stationKeeping algorithm..." << endl;
+					disableStationKeeping();
+				}
+				break;
+			case 43:
+				cout << "Enabling manual dredging..." << endl;
+				manualArmControl();
 				break;
 		}
 	}
