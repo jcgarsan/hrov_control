@@ -517,7 +517,8 @@ void Hrov_control::armControlReqCallback(const std_msgs::Bool::ConstPtr& msg)
 void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg)
 {
 	goToPoseAcResult = msg->result.succeed;
-	missionControlAlarm.data = msg->result.succeed;
+	missionControlAlarm.data = msg->status.status;
+
 
 	pub_missionControl.publish(missionControlAlarm);
 	
@@ -539,7 +540,10 @@ void Hrov_control::goToPoseAcResultCallback(const thruster_control::goToPoseActi
 		missionMenu();	
 	
 	if (DEBUG_FLAG_SAFETY)
-		cout << "goToPoseAcResult: " << (int) msg->result.succeed << endl;
+	{
+		cout << "goToPoseAcResultSucceed: " << (int) msg->result.succeed << endl;
+		cout << "goToPoseAcStatusStatus: " << (int) msg->status.status << endl;
+	}
 }
 
 
@@ -558,6 +562,7 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 	userMenuData.data = msg->data;
 	function = userMenuData.data[3] * 10 + userMenuData.data[4];
 
+
 	if (userMenuData.data[2] == 1)
 	{
 		switch(function)
@@ -574,6 +579,8 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 				cout << "Program finished..." << endl;
 				system("pkill navigatorPIcont");
 				system("pkill thrusterAllocat");
+				system("pkill uial");
+				system("pkill hrov_arm_contro");
 				system("pkill roslaunch");
 				exit(0);
 				break;
