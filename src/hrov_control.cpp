@@ -14,6 +14,7 @@
 #include <string.h>
 #include "../include/hrov_control/hrov_control.h"
 
+
 #define pressureThreshold	0.5
 #define rangeThreshold 		1.0
 #define num_sensors			2		// #0 = is there an alarm?, #1 = surface, #2 = seafloor
@@ -77,6 +78,7 @@ Hrov_control::Hrov_control()
     pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasuresAlarm", 1);
     pub_userControl = nh.advertise<std_msgs::Int8MultiArray>("userControlAlarm", 1);
     pub_missionControl = nh.advertise<std_msgs::Int8>("missionControlAlarm", 1);
+    chatter_pub = nh.advertise<std_msgs::String>("chatter", 1000);
 
 	//ACtion client initialization
 	ac = new actionlib::SimpleActionClient<thruster_control::goToPoseAction> ("GoToPoseAction", true);
@@ -562,6 +564,7 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 	userMenuData.data = msg->data;
 	function = userMenuData.data[3] * 10 + userMenuData.data[4];
 
+	std::stringstream ss;
 
 	if (userMenuData.data[2] == 1)
 	{
@@ -572,7 +575,8 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 				goToSurface();
 				break;
 			case 5:
-				cout << "Testing the system..." << endl;
+//				cout << "Testing the system..." << endl;
+				userFeedback("Testing the system... ");
 				systemTest();
 				break;
 			case 6:
@@ -609,4 +613,17 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 
 	if (DEBUG_FLAG_MENU)
 		cout << "userMenuData.data[2]: " << (int) userMenuData.data[2] << ". Function to execute: " << function << endl;
+}
+
+
+void Hrov_control::userFeedback(const char *userMessage)
+{
+	std_msgs::String msg;
+
+	msg.data = userMessage;
+	chatter_pub.publish(msg);
+
+	ROS_INFO("%s", msg.data.c_str());
+
+	ros::spinOnce();
 }

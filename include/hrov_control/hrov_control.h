@@ -13,6 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "std_msgs/String.h"
+#include <sstream>
+
 //ROS
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
@@ -75,6 +78,7 @@ class Hrov_control
 		ros::Publisher  	pub_safety;
 		ros::Publisher  	pub_userControl;
 		ros::Publisher  	pub_missionControl;
+		ros::Publisher  	chatter_pub;
 		
 		geometry_msgs::Pose			robotCurrentPose;
 		geometry_msgs::Pose			robotLastPose;
@@ -99,5 +103,6 @@ class Hrov_control
 		void goToPoseAcResultCallback(const thruster_control::goToPoseActionResult::ConstPtr& msg);
 		void getRealRobotPoseCallback(const geometry_msgs::Pose::ConstPtr& msg);
 		void getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg);
+		void userFeedback(const char *userMessage);
 
 };
