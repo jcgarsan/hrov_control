@@ -571,16 +571,18 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 		switch(function)
 		{
 			case 4:
-				cout << "Go to surface..." << endl;
+				//cout << "Go to surface..." << endl;
+				userFeedback("Go to surface...");
 				goToSurface();
 				break;
 			case 5:
-//				cout << "Testing the system..." << endl;
+				//cout << "Testing the system..." << endl;
 				userFeedback("Testing the system... ");
 				systemTest();
 				break;
 			case 6:
-				cout << "Program finished..." << endl;
+				//cout << "Program finished..." << endl;
+				userFeedback("Program finished...");
 				system("pkill navigatorPIcont");
 				system("pkill thrusterAllocat");
 				system("pkill uial");
@@ -589,23 +591,27 @@ void Hrov_control::getUserMenuData(const std_msgs::Int8MultiArray::ConstPtr& msg
 				exit(0);
 				break;
 			case 40:
-				cout << "Sending the robot to the target position..." << endl;
+				//cout << "Sending the robot to the target position..." << endl;
+				userFeedback("Sending the robot to the target position...");
 				objectPosition();
 				break;
 			case 42:
 				if (!stKeeping)
 				{
-					cout << "Enabling the stationKeeping algorithm..." << endl;
+					//cout << "Enabling the stationKeeping algorithm..." << endl;
+					userFeedback("Enabling the stationKeeping algorithm...");
 					stationKeeping();
 				}
 				else
 				{
-					cout << "Disabling the stationKeeping algorithm..." << endl;
+					//cout << "Disabling the stationKeeping algorithm..." << endl;
+					userFeedback("Disabling the stationKeeping algorithm...");
 					disableStationKeeping();
 				}
 				break;
 			case 43:
-				cout << "Enabling manual dredging..." << endl;
+				//cout << "Enabling manual dredging..." << endl;
+				userFeedback("Enabling manual dredging...");
 				manualArmControl();
 				break;
 		}
