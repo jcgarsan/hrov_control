@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "std_msgs/String.h"
 #include <sstream>
 
 //ROS
@@ -24,6 +23,7 @@
 #include <sensor_msgs/JointState.h>
 #include <sensor_msgs/Range.h>
 #include <sensor_msgs/Joy.h>
+#include <std_msgs/String.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int8.h>
 #include <std_msgs/Int8MultiArray.h>
