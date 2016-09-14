@@ -78,7 +78,7 @@ class Hrov_control
 		ros::Publisher  	pub_safety;
 		ros::Publisher  	pub_userControl;
 		ros::Publisher  	pub_missionControl;
-		ros::Publisher  	chatter_pub;
+		ros::Publisher  	pub_hudFeedback;
 		
 		geometry_msgs::Pose			robotCurrentPose;
 		geometry_msgs::Pose			robotLastPose;

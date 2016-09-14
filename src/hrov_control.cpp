@@ -78,7 +78,7 @@ Hrov_control::Hrov_control()
     pub_safety = nh.advertise<std_msgs::Int8MultiArray>("safetyMeasuresAlarm", 1);
     pub_userControl = nh.advertise<std_msgs::Int8MultiArray>("userControlAlarm", 1);
     pub_missionControl = nh.advertise<std_msgs::Int8>("missionControlAlarm", 1);
-    chatter_pub = nh.advertise<std_msgs::String>("HUDfeedback", 1000);
+    pub_hudFeedback = nh.advertise<std_msgs::String>("HUDfeedback", 1000);
 
 	//ACtion client initialization
 	ac = new actionlib::SimpleActionClient<thruster_control::goToPoseAction> ("GoToPoseAction", true);
