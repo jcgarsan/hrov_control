@@ -627,7 +627,7 @@ void Hrov_control::userFeedback(const char *userMessage)
 	std_msgs::String msg;
 
 	msg.data = userMessage;
-	chatter_pub.publish(msg);
+	pub_hudFeedback.publish(msg);
 
 	ROS_INFO("%s", msg.data.c_str());
 
