@@ -320,10 +320,11 @@ void Hrov_control::objectPosition()
 {
 	if (userMenuAcitvated)
 	{
-		robotDesiredPosition.pose.position.x = 10;
-		robotDesiredPosition.pose.position.y =  5;
-		robotDesiredPosition.pose.position.z =  5;
-		cout << "Target position defined: {10, 5, 5}" << endl;
+		robotDesiredPosition.pose.position.x = 13;
+		robotDesiredPosition.pose.position.y = 14;
+		robotDesiredPosition.pose.position.z = 10;
+		//cout << "Target position defined: {10, 5, 5}" << endl;
+		cout << "Target position defined: {13, 14, 10}" << endl;
 	}
 	else
 	{
